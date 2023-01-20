@@ -15,7 +15,7 @@ try:
 except ModuleNotFoundError:
     simpandas = False
 
-__version__ = '0.0.0'
+__version__ = '0.0.1'
 __release__ = 20230119
 
 
@@ -27,6 +27,6 @@ def las2frame(path: str):
     las_units = {k: las.data[k].units for k in las.data.keys()}
     las_units.update({las.data[list(las.data.keys())[0]].index_name: las.data[list(las.data.keys())[0]].index_units})
     if simpandas:
-        return spd.SimDataFrame(data=las.df(), units=las_units)
+        return spd.SimDataFrame(data=las.df(), units=las_units, name=las.name, meta=las.header)
     else:
         return pd.DataFrame(data=las.df()), pd.Series(las_units, name='curves_units')

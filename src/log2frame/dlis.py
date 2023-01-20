@@ -30,14 +30,24 @@ def dlis2frame(path: str, index: str = 'DEPTH'):
     physical_file = dlis.load(path)
     frames = {}
     for logical_file in physical_file:
+        meta = pd.DataFrame(index=range(len(logical_file.parameters)))
+        wname = None
+        for p in range(len(logical_file.parameters)):
+            meta.loc[p, 'name'] = logical_file.parameters[p].name
+            meta.loc[p, 'long_name'] = logical_file.parameters[p].long_name
+            meta.loc[p, 'values'] = logical_file.parameters[p].values[0]
+            if logical_file.parameters[p].name == 'WN':
+                wname = logical_file.parameters[p].values[0]
+        meta.set_index('name', inplace=True)
         for frame in logical_file.frames:
             frame_units = {channel.name: channel.units for channel in frame.channels}
             curves_df = pd.DataFrame(frame.curves())
             if index is not None and index in curves_df and len(curves_df[index].unique()) == len(curves_df):
                 curves_df.set_index(index, inplace=True)
             frames[frame.name] = (curves_df, pd.Series(frame_units, name='frame_units'))
+    physical_file.close()
     if simpandas:
-        frames = {name: spd.SimDataFrame(data=data[0], units=data[1]) for name, data in frames.items()}
+        frames = {name: spd.SimDataFrame(data=data[0], units=data[1], name=wname, meta=meta) for name, data in frames.items()}
         if len(frames) == 1:
             return frames[list(frames.keys())[0]]
         else:
