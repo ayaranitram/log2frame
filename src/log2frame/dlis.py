@@ -15,7 +15,7 @@ try:
 except ModuleNotFoundError:
     simpandas = False
 
-__version__ = '0.0.0'
+__version__ = '0.0.2'
 __release__ = 20230119
 
 

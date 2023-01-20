@@ -7,7 +7,7 @@ Created on Thu Jan 19 19:01:21 2023
 from .las import las2frame
 from .dlis import dlis2frame
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __release__ = 20230119
 __all__ = ['read', 'las2frame', 'dlis2frame']
 
