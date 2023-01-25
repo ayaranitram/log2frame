@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "log2frame"
-version = "0.0.2"
+version = "0.0.5"
 authors = [
   { name="Martin Carlos Araya", email="martinaraya@gmail.com" },
 ]
@@ -22,10 +22,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    'welly',
+    'lasio',
     'dlisio',
     'pandas',
-    # 'simpandas',
     ]
 [project.urls]
 "Homepage" = "https://github.com/ayaranitram/log2frame"
