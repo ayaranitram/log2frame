@@ -17,7 +17,7 @@ except ModuleNotFoundError:
     pass
 
 __version__ = '0.0.4'
-__release__ = 20230124
+__release__ = 20230130
 
 
 def lis2frame(path: str, index: str = 'DEPTH', use_simpandas=False):
@@ -28,45 +28,75 @@ def lis2frame(path: str, index: str = 'DEPTH', use_simpandas=False):
     elif type(index) is list and len(index) != sum([type(i) is str for i in index]):
         raise TypeError("`index` must be a string representing a curve name")
 
+    logs = {}
     physical_file = lis.load(path)
     frames = {}
     l_count = -1
     for logical_file in physical_file:
+        formatspecs = logical_file.data_format_specs()
         l_count += 1
-        meta = pd.DataFrame(index=range(len(logical_file.parameters)))
-        well_name = None
-        for p in range(len(logical_file.parameters)):
-            meta.loc[p, 'name'] = logical_file.parameters[p].name
-            meta.loc[p, 'long_name'] = logical_file.parameters[p].long_name
-            meta.loc[p, 'values'] = logical_file.parameters[p].values[0]
-            if logical_file.parameters[p].name == 'WN':
-                well_name = logical_file.parameters[p].values[0]
-        meta.set_index('name', inplace=True)
-        for frame in logical_file.frames:
-            frame_units = {channel.name: channel.units for channel in frame.channels}
-            curves_df = pd.DataFrame(frame.curves())
-            if index is not None and index in curves_df and len(curves_df[index].unique()) == len(curves_df):
-                curves_df.set_index(index, inplace=True)
-            frames[(l_count, frame.name)] = (curves_df, meta, pd.Series(frame_units, name='frame_units'), well_name)
+        header = logical_file.header()
+        reel_header = logical_file.reel.header()
+
+        frames[l_count] = {'header': {'file_name': header.file_name,
+                                      'date_of_generation': header.date_of_generation,
+                                      'name': reel_header.name,
+                                      'service_name': reel_header.service_name,
+                                      'reel_date': reel_header.date}}
+        for i in range(len(logical_file.data_format_specs())):
+            format_spec = logical_file.data_format_specs()[i]
+            frames[l_count][i] = {'index_name': format_spec[i].index_mnem,
+                                  'index_units': format_spec[i].index_units,
+                                  'spacing': format_spec[i].spacing,
+                                  'spacing_units': format_spec[i].spacing_units,
+                                  'direction': format_spec[i].direction,
+                                  'curves': {},
+                                  'curves_units': {}}
+            for sample_rate in format_spec.sample_rates():
+                frames[l_count][i]['curves'][sample_rate] = lis.curves(logical_file, format_spec, sample_rate=sample_rate, strict=False)
+                meta = lis.curves_metadata(format_spec, sample_rate=sample_rate, strict=False)
+                frames[l_count][i]['curves_units'][sample_rate] = {meta[i][key].mnemonic: meta[i][key].units for key in meta[i]}
+
+        for i in range(len(logical_file.wellsite_data())):
+            if logical_file.wellsite_data()[i].isstructured():
+                if i not in frames[l_count]:
+                    frames[l_count][i] = {}
+                frames[l_count][i]['wellsite_data'] = logical_file.wellsite_data()[i].table(simple=True)
+
     physical_file.close()
+
     if use_simpandas:
-        frames = {name: spd.SimDataFrame(data=data[0],
-                                         units=data[2],
-                                         name=data[3],
-                                         meta=data[1],
-                                         source=path)
-                  for name, data in frames.items()}
-        if len(frames) == 1:
-            return frames[list(frames.keys())[0]]
-        else:
-            return frames
+        frames = {i: spd.concat([spd.SimDataFrame(data=frames[l_count][i]['curves'][sr].update({'sample_rate': [sr] * len(frames[l_count][i]['curves'][sr])}),
+                                                  units=frames[l_count][i]['curves'],
+                                                  index=frames[l_count][i]['index_name'],
+                                                  index_units=frames[l_count][i]['index_units'],
+                                                  name=(frames[l_count]['header']['service_name'] if frames[l_count]['header']['service_name'] is not None and len(frames[l_count]['header']['service_name']) > 0 else
+                                                        frames[l_count]['header']['file_name'] if frames[l_count]['header']['file_name'] is not None and len(frames[l_count]['header']['file_name']) > 0 else
+                                                        frames[l_count]['header']['name'] if frames[l_count]['header']['name'] is not None and len(frames[l_count]['header']['name']) > 0 else None),
+                                                  meta=frames[l_count]['header'],
+                                                  source=path)
+                                 for sr in frames[l_count][i]['curves']
+                                 for i in frames[l_count]
+                                 if len(frames[l_count][i]['curves'][sr]) > 0],
+                                axis=0)
+                  for i in frames}
+
     else:
-        frames = {name: Log(data=data[0],
-                            header=data[1],
-                            units=data[2],
-                            source=path,
-                            well=data[3]) for name, data in frames.items()}
-        if len(frames) == 1:
-            return frames[list(frames.keys())[0]]
-        else:
-            return Pack(frames)
+        frames = {i: Log(
+            data=pd.concat([pd.DataFrame(data=frames[l_count][i]['curves'][sr].update({'sample_rate': [sr] * len(frames[l_count][i]['curves'][sr])}))
+                            for sr in frames[l_count][i]['curves']
+                            for i in frames[l_count]
+                            if len(frames[l_count][i]['curves'][sr]) > 0],
+                           axis=0),
+            header=frames[l_count]['header'],
+            units=frames[l_count][i]['curves'],
+            source=path,
+            well=(frames[l_count]['header']['service_name'] if frames[l_count]['header']['service_name'] is not None and len(frames[l_count]['header']['service_name']) > 0 else
+                  frames[l_count]['header']['file_name'] if frames[l_count]['header']['file_name'] is not None and len(frames[l_count]['header']['file_name']) > 0 else
+                  frames[l_count]['header']['name'] if frames[l_count]['header']['name'] is not None and len(frames[l_count]['header']['name']) > 0 else None)
+        ) for i in frames}
+
+    if len(subframe) == 1:
+        return subframe[list(subframe.keys())[0]]
+    else:
+        return Pack(subframe)
