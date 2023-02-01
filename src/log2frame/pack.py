@@ -9,8 +9,8 @@ import pandas as pd
 from .log import Log, Log2FrameType
 
 
-__version__ = '0.0.5'
-__release__ = 20230125
+__version__ = '0.1.0'
+__release__ = 20230201
 __all__ = ['Pack', 'concat']
 
 
@@ -50,6 +50,8 @@ class Pack(object, metaclass=Log2FrameType):
             from simpandas import SimDataFrame
             Pack.valid_instances_ = (SimDataFrame, Log)
         self.data = {}
+        if 'data_from_dict' in kwargs:
+            self.data = kwargs['data_from_dict']
         self.summary_ = None
         if type(data) is dict:
             self.from_dict(data)
@@ -57,28 +59,38 @@ class Pack(object, metaclass=Log2FrameType):
             self.append(data)
 
     def append(self, data, well=None, source_path=None):
-        if isinstance(data, Pack):
-            for log in data:
-                self.append(data=log.data, well=log.name, source_path=log.source)
-        if well is None and isinstance(data, Pack.valid_instances_):
-            well = data.name
-        if source_path is None and isinstance(data, Pack.valid_instances_):
-            source_path = data.source
-        if data is None:
-            return None
-        if type(data) is list:
+        if isinstance(data, (list, Pack)):
             for each in data:
-                self.append(each)
-        elif well not in self.data:
-            self.data[well] = {source_path: data}
+                self.append(data=each)
+            return None
+        elif data is None:
+            return None
         else:
-            if source_path is not None and source_path in self.data[well]:
-                logging.warning("The file '" + str(source_path) + "' is already loaded. It will be overwritten.")
-            self.data[well][source_path] = data
+            if well is None and isinstance(data, Pack.valid_instances_):
+                well = data.name
+            if source_path is None and isinstance(data, Pack.valid_instances_):
+                source_path = data.source
+
+            if well not in self.data:
+                self.data[well] = {source_path: data}
+            else:
+                if source_path is not None and source_path in self.data[well]:
+                    logging.warning("The file '" + str(source_path) + "' is already loaded. It will be overwritten.")
+                self.data[well][source_path] = data
+
+    def copy(self):
+        result = Pack(data_from_dict={well: {path: log.copy() for path, log in self.data[well].items()} for well in self.data},
+                      use_simpandas=self.simpandas_)
+        return result
+
+    def __copy__(self):
+        return self.copy()
 
     def __add__(self, other):
         if isinstance(other, Pack.valid_instances_ + (Pack,)):
-            return self.append(other)
+            result = self.copy()
+            result.append(other)
+            return result
         else:
             raise NotImplementedError("Addition of Pack and '" + str(type(other)) + "' is not implemented.")
 
@@ -101,8 +113,8 @@ class Pack(object, metaclass=Log2FrameType):
 
     def __next__(self):
         if self._iter_[0] < self._iter_[1]:
-            next, self._iter_[0] = self._iter_[0], self._iter_[0] + 1
-            return self.__getitem__(next)
+            next_, self._iter_[0] = self._iter_[0], self._iter_[0] + 1
+            return self.__getitem__(next_)
         else:
             raise StopIteration
 

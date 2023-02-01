@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "log2frame"
-version = "0.0.5"
+version = "0.1.0"
 authors = [
   { name="Martin Carlos Araya", email="martinaraya@gmail.com" },
 ]
@@ -25,6 +25,7 @@ dependencies = [
     'lasio',
     'dlisio',
     'pandas',
+    'unyts',
     ]
 [project.urls]
 "Homepage" = "https://github.com/ayaranitram/log2frame"

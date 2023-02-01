@@ -15,11 +15,11 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.0.2'
-__release__ = 20230124
+__version__ = '0.1.0'
+__release__ = 20230201
 
 
-def las2frame(path: str, index: str = 'DEPTH', use_simpandas=False):
+def las2frame(path: str, use_simpandas=False):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
 
@@ -44,21 +44,13 @@ def las2frame(path: str, index: str = 'DEPTH', use_simpandas=False):
         well_name = las_header.loc['WN', 'value']
     else:
         well_name = None
-    if index is not None and index not in las.keys():
-        index = None
-    if use_simpandas:
-        data = spd.SimDataFrame(data=las.data,
-                                columns=las.keys(),
-                                index=index,
-                                units=las_units,
-                                name=well_name,
-                                meta=las_header,
-                                source=path)
-    else:
-        data = pd.DataFrame(data=las.data, columns=las.keys())
-        if index is not None:
-            data.set_index(index, inplace=True)
-    return Log(data=data,
+
+    return Log(data=las.df() if not use_simpandas else spd.SimDataFrame(data=las.df(),
+                                                                        index_units=las.index_unit,
+                                                                        units=las_units,
+                                                                        name=well_name,
+                                                                        meta=las_header,
+                                                                        source=path),
                header=las_header,
                units=pd.Series(las_units, name='curves_units'),
                source=path,

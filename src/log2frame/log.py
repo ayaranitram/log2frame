@@ -10,8 +10,8 @@ import pandas as pd
 import unyts
 
 
-__version__ = '0.0.5'
-__release__ = 20230125
+__version__ = '0.1.0'
+__release__ = 20230201
 __all__ = ['Log']
 
 
@@ -44,10 +44,20 @@ class Log(object, metaclass=Log2FrameType):
     def meta(self):
         return self.header
 
+    def copy(self):
+        return Log(data=self.data.copy(),
+                   header=self.header.copy(),
+                   units=self.units.copy(),
+                   source=self.source,
+                   well=self.well)
+
+    def __copy__(self):
+        return self.copy()
+
     def __add__(self, other):
         from .pack import Pack
         if isinstance(other, Pack):
-            return Pack.append(self)
+            return other.__add__(self)
         elif isinstance(other, Pack.valid_instances_):
             new_pack = Pack()
             new_pack.append(self)
@@ -192,7 +202,7 @@ class Log(object, metaclass=Log2FrameType):
                     logging.warning("The curve '" + str(curve) + "' is not present in this Log.")
                     return self
             elif type(units) is dict:
-                logging.warning("`units` is a dictionary, curve will be ingored.")
+                logging.warning("`units` is a dictionary, curve will be ignored.")
             elif type(curve) is not str and hasattr(curve, '__iter__') and type(units) is str:
                 units = {curv: units for curv in curve}
             elif type(curve) is not str and hasattr(curve, '__iter__') \
@@ -200,7 +210,7 @@ class Log(object, metaclass=Log2FrameType):
                 and len(curve) == len(units):
                 units = dict(zip(curve, units))
             else:
-                logging.warning("'curve'  must be str or iterable. If 'units' is iterable, curves and units must have the same length.")
+                logging.warning("`curve` must be str or iterable. If `units` is iterable, curves and units must have the same length.")
         if hasattr(self.data, 'index_to'):
             data = self.data.to(units)
             units = pd.Series(data.get_units())
