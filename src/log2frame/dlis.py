@@ -8,6 +8,7 @@ Created on Thu Jan 19 20:07:16 2023
 from dlisio import dlis
 import os.path
 import pandas as pd
+import logging
 from .log import Log
 from .pack import Pack
 
@@ -16,11 +17,11 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.0'
-__release__ = 20230201
+__version__ = '0.1.1'
+__release__ = 20230202
 
 
-def dlis2frame(path: str, use_simpandas=False):
+def dlis2frame(path: str, use_simpandas=False, raise_error=False):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
 
@@ -34,13 +35,22 @@ def dlis2frame(path: str, use_simpandas=False):
         for p in range(len(logical_file.parameters)):
             meta.loc[p, 'name'] = logical_file.parameters[p].name
             meta.loc[p, 'long_name'] = logical_file.parameters[p].long_name
-            meta.loc[p, 'values'] = logical_file.parameters[p].values[0]
+            meta.loc[p, 'values'] = logical_file.parameters[p].values[0] if len(logical_file.parameters[p].values) else ''
             if logical_file.parameters[p].name == 'WN':
-                well_name = logical_file.parameters[p].values[0]
+                well_name = logical_file.parameters[p].values[0] if len(logical_file.parameters[p].values) else ''
         meta.set_index('name', inplace=True)
         for frame in logical_file.frames:
             frame_units = {channel.name: channel.units for channel in frame.channels}
-            curves_df = pd.DataFrame(frame.curves()).set_index(frame.index)
+            try:
+                curves_df = pd.DataFrame(frame.curves()).set_index(frame.index)
+            except ValueError:
+                if raise_error:
+                    raise ValueError("The file " + str(path) + " contains data that is not 1-dimensional.")
+                else:
+                    # curves_df = frame.curves()
+                    logging.warning("The file " + str(path) + " contains data that is not 1-dimensional.")
+                    return None
+
             frames[(l_count, frame.name)] = (curves_df, meta, pd.Series(frame_units, name='frame_units'), well_name)
     physical_file.close()
 

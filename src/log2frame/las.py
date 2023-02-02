@@ -8,6 +8,7 @@ Created on Thu Jan 19 19:02:12 2023
 import lasio
 import os.path
 import pandas as pd
+import ntpath
 from .log import Log
 
 try:
@@ -15,11 +16,11 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.0'
-__release__ = 20230201
+__version__ = '0.1.1'
+__release__ = 20230202
 
 
-def las2frame(path: str, use_simpandas=False):
+def las2frame(path: str, use_simpandas=False, raise_error=False):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
 
@@ -36,14 +37,14 @@ def las2frame(path: str, use_simpandas=False):
                                for key in las.header.keys()
                                for i in range(len(las.header[key])) if hasattr(las.header[key], 'keys')},
                               index=['unit', 'value', 'descr']).transpose()
-    if 'UWI' in las_header.index and type(las_header.loc['UWI', 'value']) is str and len(las_header.loc['UWI', 'value']) > 0:
-        well_name = las_header.loc['UWI', 'value']
-    elif 'WELL' in las_header.index:
-        well_name = las_header.loc['WELL', 'value']
-    elif 'WN' in las_header.index:
-        well_name = las_header.loc['WN', 'value']
-    else:
-        well_name = None
+    well_name = None
+    for well_name_ in ['UWI', 'WELL', 'WELL:1', 'WELL:2', 'WN', 'NAME', 'WNAME']:
+        if well_name_ in las_header.index and type(las_header.loc[well_name_, 'value']) is str \
+                and len(las_header.loc[well_name_, 'value']) > 0:
+            well_name = las_header.loc[well_name_, 'value']
+            break
+    if well_name is None:
+        well_name = ntpath.basename(path).split('.')[0]
 
     return Log(data=las.df() if not use_simpandas else spd.SimDataFrame(data=las.df(),
                                                                         index_units=las.index_unit,

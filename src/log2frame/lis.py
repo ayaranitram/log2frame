@@ -16,11 +16,11 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.0'
-__release__ = 20230201
+__version__ = '0.1.1'
+__release__ = 20230202
 
 
-def lis2frame(path: str, use_simpandas=False):
+def lis2frame(path: str, use_simpandas=False, raise_error=False):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
 
@@ -45,12 +45,18 @@ def lis2frame(path: str, use_simpandas=False):
             return data.set_index(frames[l_count][i]['index_name'])
 
     def _make_header(l_count, i):
-        return pd.concat([pd.DataFrame(frames[l_count]['header'], index=['values']).transpose(),
-                          pd.merge(pd.DataFrame(frames[l_count][i]['curves_units'][sample_rate],
-                                                index=['units']).transpose(),
-                                   pd.DataFrame(frames[l_count][i]['wellsite_data']).set_index('MNEM'),
-                                   right_index=True, left_index=True)],
-                         axis=0).fillna(value='')
+        to_concat = []
+        if 'curves_units' in frames[l_count][i]:
+            to_concat.append(pd.DataFrame(frames[l_count][i]['curves_units'][sample_rate],
+                                          index=['units']).transpose())
+        if 'wellsite_data' in frames[l_count][i]:
+            to_concat.append(pd.DataFrame(frames[l_count][i]['wellsite_data']).set_index('MNEM'))
+        if len(to_concat) == 2:
+            to_concat = [pd.merge(to_concat[0], to_concat[1], right_index=True, left_index=True)]
+        if 'header' in frames[l_count]:
+            to_concat = [pd.DataFrame(frames[l_count]['header'], index=['values']).transpose()] + to_concat
+        
+        return pd.concat(to_concat, axis=0).fillna(value='')
 
     physical_file = lis.load(path)
     frames = {}
@@ -61,11 +67,11 @@ def lis2frame(path: str, use_simpandas=False):
         header = logical_file.header()
         reel_header = logical_file.reel.header()
 
-        frames[l_count] = {'header': {'file_name': header.file_name,
-                                      'date_of_generation': header.date_of_generation,
-                                      'name': reel_header.name,
-                                      'service_name': reel_header.service_name,
-                                      'reel_date': reel_header.date}}
+        frames[l_count] = {'header': {'file_name': header.file_name if hasattr(header, 'file_name') else '',
+                                      'date_of_generation': header.date_of_generation if hasattr(header, 'date_of_generation') else '',
+                                      'name': reel_header.name if hasattr(reel_header, 'name') else '',
+                                      'service_name': reel_header.service_name if hasattr(reel_header, 'service_name') else '',
+                                      'reel_date': reel_header.date if hasattr(reel_header, 'reel_date') else ''}}
         for i in range(len(formatspecs)):
             frames[l_count][i] = {'index_name': formatspecs[i].index_mnem,
                                   'index_units': formatspecs[i].index_units,
@@ -107,6 +113,7 @@ def lis2frame(path: str, use_simpandas=False):
     ) for l_count in frames
         for i in frames[l_count]
         if type(i) is int
+        and 'curves' in frames[l_count][i]
         for sr in frames[l_count][i]['curves']
         if len(frames[l_count][i]['curves'][sr]) > 0}
 
