@@ -10,8 +10,8 @@ import pandas as pd
 import unyts
 
 
-__version__ = '0.1.0'
-__release__ = 20230201
+__version__ = '0.1.1'
+__release__ = 20230202
 __all__ = ['Log']
 
 
@@ -107,6 +107,12 @@ class Log(object, metaclass=Log2FrameType):
             return self.units[self.data.index.name]
         else:
             logging.warning("index units are not defined.")
+
+    def set_index_units(self, units: str):
+        if hasattr(self.data, 'set_index_units'):
+            self.data.set_index_units(units)
+        if self.data.index.name in self.units:
+            self.units[self.data.index.name] = units.split()
 
     def index_to(self, index_units: str):
         if isinstance(index_units, Log):
