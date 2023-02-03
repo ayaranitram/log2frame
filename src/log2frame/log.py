@@ -76,7 +76,16 @@ class Log(object, metaclass=Log2FrameType):
         return self.data._repr_html_()
 
     def __getitem__(self, mnemonics):
-        return self.data[mnemonics]
+        try:
+            return self.data[mnemonics]
+        except:
+            try:
+                return self.data.loc[mnemonics]
+            except:
+                try:
+                    return self.data.iloc[mnemonics]
+                except:
+                    raise KeyError("'" + str(mnemonics) + "' is not a curve name and is not a value in the index.")
 
     def __setitem__(self, mnemonics, curve):
         self.data[mnemonics] = curve

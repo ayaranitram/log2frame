@@ -13,8 +13,8 @@ import glob
 import os.path
 import logging
 
-__version__ = '0.1.1'
-__release__ = 20230202
+__version__ = '0.1.2'
+__release__ = 20230203
 __all__ = ['read', 'concat']
 
 
