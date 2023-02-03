@@ -16,8 +16,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.1'
-__release__ = 20230202
+__version__ = '0.1.2'
+__release__ = 20230203
 
 
 def lis2frame(path: str, use_simpandas=False, raise_error=False):
@@ -55,8 +55,14 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
             to_concat = [pd.merge(to_concat[0], to_concat[1], right_index=True, left_index=True)]
         if 'header' in frames[l_count]:
             to_concat = [pd.DataFrame(frames[l_count]['header'], index=['values']).transpose()] + to_concat
-        
+
         return pd.concat(to_concat, axis=0).fillna(value='')
+
+    def _try_frame(data):
+        try:
+            return pd.DataFrame(data)
+        except:
+            return None
 
     physical_file = lis.load(path)
     frames = {}
@@ -68,9 +74,11 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
         reel_header = logical_file.reel.header()
 
         frames[l_count] = {'header': {'file_name': header.file_name if hasattr(header, 'file_name') else '',
-                                      'date_of_generation': header.date_of_generation if hasattr(header, 'date_of_generation') else '',
+                                      'date_of_generation': header.date_of_generation if hasattr(header,
+                                                                                                 'date_of_generation') else '',
                                       'name': reel_header.name if hasattr(reel_header, 'name') else '',
-                                      'service_name': reel_header.service_name if hasattr(reel_header, 'service_name') else '',
+                                      'service_name': reel_header.service_name if hasattr(reel_header,
+                                                                                          'service_name') else '',
                                       'reel_date': reel_header.date if hasattr(reel_header, 'reel_date') else ''}}
         for i in range(len(formatspecs)):
             frames[l_count][i] = {'index_name': formatspecs[i].index_mnem,
@@ -84,7 +92,8 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
                 frames[l_count][i]['curves'][sample_rate] = lis.curves(logical_file, formatspecs[i],
                                                                        sample_rate=sample_rate, strict=False)
                 meta = lis.curves_metadata(formatspecs[i], sample_rate=sample_rate, strict=False)
-                frames[l_count][i]['curves_units'][sample_rate] = {meta[key].mnemonic: meta[key].units for key in meta}
+                frames[l_count][i]['curves_units'][sample_rate] = {meta[key].mnemonic: meta[key].units for key in meta
+                                                                   if meta[key] is not None}
 
         wellsite_data = logical_file.wellsite_data()
         for i in range(len(wellsite_data)):
@@ -98,7 +107,7 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
         data=_get_frame(pd.concat([pd.DataFrame({'physical_file': [l_count] * len(frames[l_count][i]['curves'][sr]),
                                                  'logical_file': [i] * len(frames[l_count][i]['curves'][sr]),
                                                  'sample_rate': [sr] * len(frames[l_count][i]['curves'][sr])}),
-                                   pd.DataFrame(frames[l_count][i]['curves'][sr])], axis=1),
+                                   _try_frame(frames[l_count][i]['curves'][sr])], axis=1),
                         l_count=l_count, i=i, sr=sr),
         header=_make_header(l_count=l_count, i=i),
         units=pd.Series(frames[l_count][i]['curves_units'][sr]),
@@ -113,7 +122,7 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
     ) for l_count in frames
         for i in frames[l_count]
         if type(i) is int
-        and 'curves' in frames[l_count][i]
+           and 'curves' in frames[l_count][i]
         for sr in frames[l_count][i]['curves']
         if len(frames[l_count][i]['curves'][sr]) > 0}
 
