@@ -21,7 +21,7 @@ By default, any invalid file will be ignored, thus, there is no problem to have 
 
 ## several files recursively
 To read files recursively in subdirectories, use the appropriate `fnmatch` pattern:  
-- `log2frame.read( path_to_folder_containing_files/*/*.* )`
+- `log2frame.read( path_to_folder_containing_files/**/*.* )`
 
 # further examples and details
 Please refer to the Jupyter notebook <a href="https://github.com/ayaranitram/log2frame/blob/master/log2frame_demo.ipynb">**log2frame_demo**</a> for further examples and details on how to use **`log2frame`**.  
