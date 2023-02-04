@@ -17,8 +17,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.1'
-__release__ = 20230202
+__version__ = '0.1.2'
+__release__ = 20230204
 
 
 def dlis2frame(path: str, use_simpandas=False, raise_error=False):
@@ -35,7 +35,7 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=False):
         for p in range(len(logical_file.parameters)):
             meta.loc[p, 'name'] = logical_file.parameters[p].name
             meta.loc[p, 'long_name'] = logical_file.parameters[p].long_name
-            meta.loc[p, 'values'] = logical_file.parameters[p].values[0] if len(logical_file.parameters[p].values) else ''
+            meta.loc[p, 'values'] = logical_file.parameters[p].values[0] if len(logical_file.parameters[p].values) > 0 else ''
             if logical_file.parameters[p].name == 'WN':
                 well_name = logical_file.parameters[p].values[0] if len(logical_file.parameters[p].values) else ''
         meta.set_index('name', inplace=True)
