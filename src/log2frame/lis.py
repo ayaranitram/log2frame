@@ -16,8 +16,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.2'
-__release__ = 20230203
+__version__ = '0.1.3'
+__release__ = 20230204
 
 
 def lis2frame(path: str, use_simpandas=False, raise_error=False):
@@ -25,10 +25,16 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
 
     def _get_frame(data, l_count, i, sr):
+        if frames[l_count][i]['index_name'] in data:
+            index_name = frames[l_count][i]['index_name']
+        elif len([c for c in data.columns if c.startswith(frames[l_count][i]['index_name'])]) > 0:
+            index_name = [c for c in data.columns if c.startswith(frames[l_count][i]['index_name'])][0]
+        else:
+            index_name = list(data.columns)[0]
         if use_simpandas:
             return spd.SimDataFrame(data=data,
                                     units=frames[l_count][i]['curves_units'][sr],
-                                    index=frames[l_count][i]['index_name'],
+                                    index=index_name,
                                     index_units=frames[l_count][i]['index_units'],
                                     name=(frames[l_count]['header']['service_name']
                                           if frames[l_count]['header']['service_name'] is not None
@@ -42,7 +48,8 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
                                     meta=_make_header(l_count=l_count, i=i),
                                     source=path)
         else:
-            return data.set_index(frames[l_count][i]['index_name'])
+            return data.set_index(index_name)
+
 
     def _make_header(l_count, i):
         to_concat = []
