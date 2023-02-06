@@ -4,8 +4,9 @@ Created on Thu Jan 19 19:02:12 2023
 
 @author: Martín Carlos Araya <martinaraya@gmail.com>
 """
-
+import logging
 import lasio
+from lasio.exceptions import LASDataError, LASHeaderError, LASUnknownUnitError
 import os.path
 import pandas as pd
 import ntpath
@@ -16,15 +17,31 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.1'
-__release__ = 20230202
+__version__ = '0.1.3'
+__release__ = 20230205
 
 
-def las2frame(path: str, use_simpandas=False, raise_error=False):
+class LASIOError(Exception):
+    """
+    Error raised while reading LAS file.
+    """
+    def __init__(self, message='raised by lasio.'):
+        self.message = 'ERROR: reading LAS file ' + message
+
+
+def las2frame(path: str, use_simpandas=False, raise_error=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
 
-    las = lasio.read(path)
+    try:
+        las = lasio.read(path)
+    except:  # any possible error raised at this point will be raised by lasio
+        if raise_error:
+            raise LASIOError("Error raised by lasio while reading: " + str(path))
+        else:
+            logging.warning("Error raised by lasio while reading: " + str(path))
+            return None
+
     las_units = {}
     if 'Well' in las.header:
         las_units = {las.header['Well'][i]['mnemonic']: las.header['Well'][i]['unit'] for i in

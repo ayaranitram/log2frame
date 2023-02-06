@@ -5,10 +5,11 @@ Created on Thu Jan 19 20:07:16 2023
 @author: Martín Carlos Araya <martinaraya@gmail.com>
 """
 
+import logging
 from dlisio import dlis
 import os.path
 import pandas as pd
-import logging
+import numpy as np
 from .log import Log
 from .pack import Pack
 
@@ -17,15 +18,31 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.2'
-__release__ = 20230204
+__version__ = '0.1.4'
+__release__ = 20230205
 
 
-def dlis2frame(path: str, use_simpandas=False, raise_error=False):
+class DLISIOError(Exception):
+    """
+    Error raised while reading LAS file.
+    """
+    def __init__(self, message='raised by dlisio.'):
+        self.message = 'ERROR: reading DLIS file ' + message
+
+
+def dlis2frame(path: str, use_simpandas=False, raise_error=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
 
-    physical_file = dlis.load(path)
+    try:
+        physical_file = dlis.load(path)
+    except:  # any possible error raised at this point will be raised by dlisio
+        if raise_error:
+            raise DLISIOError("Error raised by dlisio while reading: " + str(path))
+        else:
+            logging.warning("Error raised by dlisio while reading: " + str(path))
+            return None
+
     frames = {}
     l_count = -1
     for logical_file in physical_file:
@@ -35,7 +52,13 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=False):
         for p in range(len(logical_file.parameters)):
             meta.loc[p, 'name'] = logical_file.parameters[p].name
             meta.loc[p, 'long_name'] = logical_file.parameters[p].long_name
-            meta.loc[p, 'values'] = logical_file.parameters[p].values[0] if len(logical_file.parameters[p].values) > 0 else ''
+            if len(logical_file.parameters[p].values) > 0:
+                if isinstance(logical_file.parameters[p].values[0], np.ndarray):
+                    meta.loc[p, 'values'] = 'numpy.ndarray not loaded.'
+                else:
+                    meta.loc[p, 'values'] = logical_file.parameters[p].values[0]
+            else:
+                meta.loc[p, 'values'] = ''
             if logical_file.parameters[p].name == 'WN':
                 well_name = logical_file.parameters[p].values[0] if len(logical_file.parameters[p].values) else ''
         meta.set_index('name', inplace=True)

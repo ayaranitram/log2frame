@@ -13,8 +13,8 @@ import glob
 import os.path
 import logging
 
-__version__ = '0.1.4'
-__release__ = 20230204
+__version__ = '0.1.8'
+__release__ = 20230206
 __all__ = ['read', 'concat']
 
 
@@ -44,10 +44,10 @@ def _read_one(path: str, raise_error=True, use_simpandas=None):
         return las2frame(path, use_simpandas=use_simpandas, raise_error=raise_error)
     elif path.split('.')[-1].lower() == 'dlis':
         return dlis2frame(path, use_simpandas=use_simpandas, raise_error=raise_error)
-    elif path.split('.')[-1].lower() == 'lis':
+    elif path.split('.')[-1].lower() in ['lis', 'lti']:
         return lis2frame(path, use_simpandas=use_simpandas, raise_error=raise_error)
     elif not raise_error:
-        logging.warning("Not a valid log file: " + str(path))
+        # logging.warning("Not a valid log file: " + str(path))
         return None
     else:
         raise ValueError("`path` should be a '.las' or '.dlis' file")

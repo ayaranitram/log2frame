@@ -5,6 +5,7 @@ Created on Thu Jan 19 20:07:16 2023
 @author: Martín Carlos Araya <martinaraya@gmail.com>
 """
 
+import logging
 from dlisio import lis
 import os.path
 import pandas as pd
@@ -16,11 +17,18 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.3'
-__release__ = 20230204
+__version__ = '0.1.5'
+__release__ = 20230205
 
 
-def lis2frame(path: str, use_simpandas=False, raise_error=False):
+class DLISIOError(Exception):
+    """
+    Error raised while reading LAS file.
+    """
+    def __init__(self, message='raised by dlisio.'):
+        self.message = 'ERROR: reading LIS file ' + message
+
+def lis2frame(path: str, use_simpandas=False, raise_error=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
 
@@ -45,16 +53,16 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
                                           frames[l_count]['header']['name']
                                           if frames[l_count]['header']['name'] is not None
                                              and len(frames[l_count]['header']['name']) > 0 else None),
-                                    meta=_make_header(l_count=l_count, i=i),
+                                    meta=_make_header(l_count=l_count, i=i, sr=sr),
                                     source=path)
         else:
             return data.set_index(index_name)
 
 
-    def _make_header(l_count, i):
+    def _make_header(l_count, i, sr):
         to_concat = []
-        if 'curves_units' in frames[l_count][i]:
-            to_concat.append(pd.DataFrame(frames[l_count][i]['curves_units'][sample_rate],
+        if 'curves_units' in frames[l_count][i] and sr in frames[l_count][i]['curves_units']:
+            to_concat.append(pd.DataFrame(frames[l_count][i]['curves_units'][sr],
                                           index=['units']).transpose())
         if 'wellsite_data' in frames[l_count][i]:
             to_concat.append(pd.DataFrame(frames[l_count][i]['wellsite_data']).set_index('MNEM'))
@@ -71,7 +79,15 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
         except:
             return None
 
-    physical_file = lis.load(path)
+    try:
+        physical_file = lis.load(path)
+    except:  # any possible error raised at this point will be raised by dlisio
+        if raise_error:
+            raise DLISIOError("Error raised by dlisio while reading: " + str(path))
+        else:
+            logging.warning("Error raised by dlisio while reading: " + str(path))
+            return None
+
     frames = {}
     l_count = -1
     for logical_file in physical_file:
@@ -116,7 +132,7 @@ def lis2frame(path: str, use_simpandas=False, raise_error=False):
                                                  'sample_rate': [sr] * len(frames[l_count][i]['curves'][sr])}),
                                    _try_frame(frames[l_count][i]['curves'][sr])], axis=1),
                         l_count=l_count, i=i, sr=sr),
-        header=_make_header(l_count=l_count, i=i),
+        header=_make_header(l_count=l_count, i=i, sr=sr),
         units=pd.Series(frames[l_count][i]['curves_units'][sr]),
         source=path,
         well=(

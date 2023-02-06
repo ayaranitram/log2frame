@@ -41,6 +41,10 @@ class Log(object, metaclass=Log2FrameType):
         return self.keys()
 
     @property
+    def curves(self):
+        return self.keys()
+
+    @property
     def meta(self):
         return self.header
 
