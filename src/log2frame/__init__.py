@@ -12,6 +12,7 @@ from .log import Log
 import glob
 import os.path
 import logging
+from .rft import *
 
 __version__ = '0.1.8'
 __release__ = 20230206
