@@ -18,8 +18,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.4'
-__release__ = 20230205
+__version__ = '0.1.5'
+__release__ = 20230209
 
 
 class DLISIOError(Exception):
@@ -52,7 +52,15 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=True):
         for p in range(len(logical_file.parameters)):
             meta.loc[p, 'name'] = logical_file.parameters[p].name
             meta.loc[p, 'long_name'] = logical_file.parameters[p].long_name
-            if len(logical_file.parameters[p].values) > 0:
+            try:
+                _len_values = len(logical_file.parameters[p].values)
+            except:
+                if raise_error:
+                    raise DLISIOError("Error raised by dlisio while reading: " + str(path))
+                else:
+                    logging.warning("Error raised by dlisio while reading: " + str(path))
+                    _len_values = 0
+            if _len_values > 0:
                 if isinstance(logical_file.parameters[p].values[0], np.ndarray):
                     meta.loc[p, 'values'] = 'numpy.ndarray not loaded.'
                 else:
@@ -72,7 +80,7 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=True):
                 else:
                     # curves_df = frame.curves()
                     logging.warning("The file " + str(path) + " contains data that is not 1-dimensional.")
-                    return None
+                    continue
 
             frames[(l_count, frame.name)] = (curves_df, meta, pd.Series(frame_units, name='frame_units'), well_name)
     physical_file.close()
