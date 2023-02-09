@@ -1,7 +1,16 @@
+"""
+Created on Sun Feb  5 19:54:23 2023
+
+@author: Martín Carlos Araya <martinaraya@gmail.com>
+"""
+
 import pandas as pd
 import glob
 import os
 from .__init__ import read as read_log_
+
+__version__ = '0.1.0'
+__release__ = 20230209
 
 
 def get_col_width(line: str) -> list:
@@ -101,6 +110,8 @@ def read_asc_info(path: str) -> pd.DataFrame:
 
 def extract_info(info_df: pd.DataFrame) -> None:
     for col in info_df.select_dtypes(object):
+        if col.upper() in ['WELL', 'WELL_NAME', 'WELL NAME', 'WELLBORE', 'HOLE SECTION', 'WN']:
+            continue
         try:
             info_df[col] = info_df[col].astype(int)
         except:
@@ -111,7 +122,7 @@ def extract_info(info_df: pd.DataFrame) -> None:
                     info_df[col] = pd.to_datetime(info_df[col])
                 except:
                     pass
-    mightbe = {}
+    might_be = {}
     for col in info_df.select_dtypes(object):
         if info_df[col].str.contains('@').all():
             info_df['KIND'] = [each.split('@')[0].strip().lower() for each in info_df[col]]
@@ -119,14 +130,14 @@ def extract_info(info_df: pd.DataFrame) -> None:
             info_df['KIND'] = info_df['KIND'].astype('category')
             try:
                 info_df['DEPTH'] = info_df['DEPTH'].astype(float)
-                mightbe = {}
+                might_be = {}
                 break
             except:
                 pass
         elif info_df[col].str.contains('@').any():
-            mightbe[col] = info_df[col].str.contains('@').sum()
-    if len(mightbe) > 0:
-        col = [col for col, count in mightbe.items() if count == max(mightbe.values())][0]
+            might_be[col] = info_df[col].str.contains('@').sum()
+    if len(might_be) > 0:
+        col = [col for col, count in might_be.items() if count == max(might_be.values())][0]
         info_df['KIND'] = [each.split('@')[0].strip().lower() for each in info_df[col]]
         info_df['DEPTH'] = [None if '@' not in each else each.split('@')[1].strip() for each in info_df[col]]
         info_df['KIND'] = info_df['KIND'].astype('category')
@@ -134,7 +145,6 @@ def extract_info(info_df: pd.DataFrame) -> None:
             info_df['DEPTH'] = info_df['DEPTH'].astype(float)
         except:
             pass
-
 
 
 def read_mdt_log(path: str) -> pd.DataFrame:
@@ -147,7 +157,7 @@ def merge_and_label(info_df, log_df):
     return result
 
 
-def make_rft_summary(folder_path: str) -> pd.DataFrame:
+def rft_summary(folder_path: str) -> pd.DataFrame:
     if len(folder_path) == 0:
         raise ValueError("`folder_path` must not be empty.")
     if os.path.isfile(folder_path):
@@ -180,14 +190,14 @@ def make_rft_summary(folder_path: str) -> pd.DataFrame:
     return merge_and_label(rft_sum, rft_log)
 
 
-def make_rft_summaries(folder_path: str) -> pd.DataFrame:
+def rft_summaries_from_folders(folder_path: str) -> pd.DataFrame:
     wells_folders = [f.path for f in os.scandir(folder_path) if f.is_dir()]
     if len(wells_folders) == 0:
         raise FileNotFoundError("`folder_path` must be a folder containing one subfolder for each well.")
     wells_data = {}
     for folder in wells_folders:
         print("reading:", folder)
-        df = make_rft_summary(folder)
+        df = rft_summary(folder)
         if df is None:
             continue
         folder = folder.replace('\\', '/').split('/')[-1].strip()
