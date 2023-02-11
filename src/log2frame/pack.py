@@ -9,8 +9,8 @@ import pandas as pd
 from .log import Log, Log2FrameType
 
 
-__version__ = '0.1.0'
-__release__ = 20230201
+__version__ = '0.1.1'
+__release__ = 20230210
 __all__ = ['Pack', 'concat']
 
 
@@ -85,6 +85,9 @@ class Pack(object, metaclass=Log2FrameType):
 
     def __copy__(self):
         return self.copy()
+
+    def __contains__(self, well):
+        return well in self.summary()['well'].values
 
     def __add__(self, other):
         if isinstance(other, Pack.valid_instances_ + (Pack,)):
