@@ -10,8 +10,8 @@ import pandas as pd
 import unyts
 
 
-__version__ = '0.1.1'
-__release__ = 20230202
+__version__ = '0.1.2'
+__release__ = 20230211
 __all__ = ['Log']
 
 
@@ -29,34 +29,9 @@ class Log(object, metaclass=Log2FrameType):
         self.source = source
         self.uwi = self.header['UWI'] if 'UWI' in self.header else None
         if well is None:
-            self.well = self.header['WN'] if 'WN' in self.header else self.header['WELL'] if 'WELL' in self.header else None
+            self.well = self.header['WN'] if 'WN' in self.header else self.header['WELL'] if 'WELL' in self.header else self.uwi
         else:
             self.well = well
-
-    def keys(self):
-        return self.data.columns
-
-    @property
-    def columns(self):
-        return self.keys()
-
-    @property
-    def curves(self):
-        return self.keys()
-
-    @property
-    def meta(self):
-        return self.header
-
-    def copy(self):
-        return Log(data=self.data.copy(),
-                   header=self.header.copy(),
-                   units=self.units.copy(),
-                   source=self.source,
-                   well=self.well)
-
-    def __copy__(self):
-        return self.copy()
 
     def __add__(self, other):
         from .pack import Pack
@@ -70,14 +45,11 @@ class Log(object, metaclass=Log2FrameType):
         else:
             raise NotImplementedError("Addition of Log and '" + str(type(other)) + "' is not implemented.")
 
-    def __len__(self):
-        return len(self.data)
+    def __contains__(self, curve):
+        return curve in self.data or curve == self.index_name
 
-    def __repr__(self):
-        return self.data.__repr__()
-
-    def _repr_html_(self):
-        return self.data._repr_html_()
+    def __copy__(self):
+        return self.copy()
 
     def __getitem__(self, mnemonics):
         try:
@@ -91,18 +63,39 @@ class Log(object, metaclass=Log2FrameType):
                 except:
                     raise KeyError("'" + str(mnemonics) + "' is not a curve name and is not a value in the index.")
 
-    def __setitem__(self, mnemonics, curve):
-        self.data[mnemonics] = curve
-
-    def __contains__(self, curve):
-        return curve in self.data or curve == self.index_name
-
     def __iter__(self):
         return self
+
+    def __len__(self):
+        return len(self.data)
 
     def __next__(self):
         for curve in self.data.columns:
             yield curve
+
+    def __repr__(self):
+        return self.data.__repr__()
+
+    def _repr_html_(self):
+        return self.data._repr_html_()
+
+    def __setitem__(self, mnemonics, curve):
+        self.data[mnemonics] = curve
+
+    @property
+    def columns(self):
+        return self.keys()
+
+    def copy(self):
+        return Log(data=self.data.copy(),
+                   header=self.header.copy(),
+                   units=self.units.copy(),
+                   source=self.source,
+                   well=self.well)
+
+    @property
+    def curves(self):
+        return self.keys()
 
     @property
     def index(self):
@@ -120,6 +113,17 @@ class Log(object, metaclass=Log2FrameType):
             return self.units[self.data.index.name]
         else:
             logging.warning("index units are not defined.")
+
+    def keys(self):
+        return self.data.columns
+
+    @property
+    def meta(self):
+        return self.header
+
+    @property
+    def path(self):
+        return self.source
 
     def set_index_units(self, units: str):
         if hasattr(self.data, 'set_index_units'):
@@ -180,6 +184,21 @@ class Log(object, metaclass=Log2FrameType):
                 logging.warning(msg)
             return self
 
+
+
+    @property
+    def name(self):
+        if self.uwi is not None:
+            return self.uwi
+        elif self.well is not None:
+            return self.well
+
+    def rename(self, new_name: str):
+        new_name = str(new_name).strip()
+        self.well = new_name
+        if hasattr(self.data, "name"):
+            self.data.name = new_name
+
     def set_index(self, curve, inplace=False):
         inplace = bool(inplace)
         if curve == self.index_name:
@@ -202,13 +221,6 @@ class Log(object, metaclass=Log2FrameType):
                 raise ValueError(msg)
             else:
                 logging.warning(msg)
-
-    @property
-    def name(self):
-        if self.uwi is not None:
-            return self.uwi
-        elif self.well is not None:
-            return self.well
 
     def to(self, units, curve=None):
         if curve is not None:
