@@ -10,8 +10,8 @@ import pandas as pd
 import unyts
 
 
-__version__ = '0.1.2'
-__release__ = 20230211
+__version__ = '0.1.3'
+__release__ = 20230219
 __all__ = ['Log']
 
 
@@ -101,9 +101,17 @@ class Log(object, metaclass=Log2FrameType):
     def index(self):
         return self.data.index
 
+    @index.setter
+    def index(self, index):
+        self.data.index = index
+
     @property
     def index_name(self):
         return self.data.index.name
+
+    @index_name.setter
+    def index_name(self, name):
+        self.data.index.name = name
 
     @property
     def index_units(self):
@@ -113,6 +121,10 @@ class Log(object, metaclass=Log2FrameType):
             return self.units[self.data.index.name]
         else:
             logging.warning("index units are not defined.")
+
+    @index_units.setter
+    def index_units(self, units: str):
+        self.set_index_units(units)
 
     def keys(self):
         return self.data.columns
@@ -124,6 +136,9 @@ class Log(object, metaclass=Log2FrameType):
     @property
     def path(self):
         return self.source
+
+    def set_index_name(self, name):
+        self.data.index.name = name
 
     def set_index_units(self, units: str):
         if hasattr(self.data, 'set_index_units'):
@@ -184,14 +199,16 @@ class Log(object, metaclass=Log2FrameType):
                 logging.warning(msg)
             return self
 
-
-
     @property
     def name(self):
         if self.uwi is not None:
             return self.uwi
         elif self.well is not None:
             return self.well
+
+    @name.setter
+    def name(self, new_name: str):
+        self.rename(new_name)
 
     def rename(self, new_name: str):
         new_name = str(new_name).strip()
