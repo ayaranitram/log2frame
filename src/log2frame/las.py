@@ -17,8 +17,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.3'
-__release__ = 20230205
+__version__ = '0.1.4'
+__release__ = 20230219
 
 
 class LASIOError(Exception):
@@ -55,7 +55,7 @@ def las2frame(path: str, use_simpandas=False, raise_error=True):
                                for i in range(len(las.header[key])) if hasattr(las.header[key], 'keys')},
                               index=['unit', 'value', 'descr']).transpose()
     well_name = None
-    for well_name_ in ['UWI', 'WELL', 'WELL:1', 'WELL:2', 'WN', 'NAME', 'WNAME']:
+    for well_name_ in ['UWI', 'WELLBORE', 'WELL', 'WELL:1', 'WELL:2', 'WN', 'NAME', 'WNAME']:
         if well_name_ in las_header.index and type(las_header.loc[well_name_, 'value']) is str \
                 and len(las_header.loc[well_name_, 'value']) > 0:
             well_name = las_header.loc[well_name_, 'value']
