@@ -9,8 +9,8 @@ import glob
 import os
 from .__init__ import read as read_log_
 
-__version__ = '0.1.0'
-__release__ = 20230209
+__version__ = '0.1.1'
+__release__ = 20230219
 __all__ = ['rft_summaries_from_folders', 'rft_summary']
 
 
@@ -201,10 +201,9 @@ def rft_summaries_from_folders(folder_path: str) -> pd.DataFrame:
         df = rft_summary(folder)
         if df is None:
             continue
-        folder = folder.replace('\\', '/').split('/')[-1].strip()
+        folder = folder.replace('\\', '/').split('/')[-1]
         df['FOLDER_NAME'] = folder
         wells_data[folder] = df
-    print(len(wells_data))
     if len(wells_data) == 1:
         wells_data = wells_data[0]
     else:
