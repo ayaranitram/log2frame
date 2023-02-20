@@ -10,8 +10,8 @@ import pandas as pd
 import unyts
 
 
-__version__ = '0.1.3'
-__release__ = 20230219
+__version__ = '0.1.4'
+__release__ = 20230220
 __all__ = ['Log']
 
 
@@ -241,6 +241,14 @@ class Log(object, metaclass=Log2FrameType):
                 raise ValueError(msg)
             else:
                 logging.warning(msg)
+
+    def sort(self, inplace=False):
+        if inplace:
+            self.data.sort_index(inplace=True)
+        else:
+            result = self.copy()
+            result.data.sort_index(inplace=True)
+            return result
 
     def to(self, units, curve=None):
         if curve is not None:
