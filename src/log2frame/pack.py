@@ -8,8 +8,8 @@ import logging
 import pandas as pd
 from .log import Log, Log2FrameType
 
-__version__ = '0.1.2'
-__release__ = 20230211
+__version__ = '0.1.3'
+__release__ = 20230221
 __all__ = ['Pack', 'concat']
 
 
@@ -176,6 +176,13 @@ class Pack(object, metaclass=Log2FrameType):
             to_pop = [well for well in self.data if item in self.data[well]]
             for well in to_pop:
                 _ = self.data[well].pop(item)
+            if len(self.data[well]) == 0:
+                _ = self.data.pop(well)
+        elif type(item) is tuple and len(item) == 2 and \
+                item[0] in self and item[1] in self.data[item[0]]:
+            _ = self.data[item[0]].pop(item[1])
+            if len(self.data[item[0]]) == 0:
+                _ = self.data.pop(item[0])
         else:
             raise ValueError("'" + str(item) + "' is not a well or a path in this Pack.")
 
