@@ -213,11 +213,17 @@ class Log(object, metaclass=Log2FrameType):
     def name(self, new_name: str):
         self.rename(new_name)
 
-    def rename(self, new_name: str):
+    def rename(self, new_name: str, inplace=True):
         new_name = str(new_name).strip()
-        self.well = new_name
-        if hasattr(self.data, "name"):
-            self.data.name = new_name
+        if inplace:
+            self.well = new_name
+            if hasattr(self.data, "name"):
+                self.data.name = new_name
+        else:
+            result = self.copy()
+            result.well = new_name
+            if hasattr(result.data, "name"):
+                result.data.name = new_name
 
     def set_index(self, curve, inplace=False):
         inplace = bool(inplace)
