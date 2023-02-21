@@ -31,6 +31,8 @@ class DLISIOError(Exception):
 def lis2frame(path: str, use_simpandas=False, raise_error=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
+    if type(path) is str:
+        path = path.replace('\\', '/')
 
     def _get_frame(data, l_count, i, sr):
         if frames[l_count][i]['index_name'] in data:

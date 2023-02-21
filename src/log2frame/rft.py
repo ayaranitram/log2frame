@@ -9,8 +9,8 @@ import glob
 import os
 from .__init__ import read as read_log_
 
-__version__ = '0.1.1'
-__release__ = 20230219
+__version__ = '0.1.2'
+__release__ = 20230221
 __all__ = ['rft_summaries_from_folders', 'rft_summary']
 
 
@@ -47,8 +47,12 @@ def read_asc_info(path: str) -> pd.DataFrame:
     data_header = ''
     if not os.path.isfile(path):
         raise FileNotFoundError("The file '" + str(path) + "' does not exist.")
+    if type(path) is str:
+        path = path.replace('\\', '/')
+
     with open(path) as f:
         text = f.readlines()
+
     for line in text:
         line = line.strip()
         if len(line) == 0:
@@ -87,6 +91,7 @@ def read_asc_info(path: str) -> pd.DataFrame:
                 else:
                     key, value = line, None
                 header[key] = value
+
     max_cols = -1
     if len(data_header) > 0:
         max_cols = max([len(each) for each in data_header])

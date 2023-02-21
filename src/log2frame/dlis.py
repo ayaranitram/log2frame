@@ -33,6 +33,8 @@ class DLISIOError(Exception):
 def dlis2frame(path: str, use_simpandas=False, raise_error=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
+    if type(path) is str:
+        path = path.replace('\\', '/')
 
     try:
         physical_file = dlis.load(path)
