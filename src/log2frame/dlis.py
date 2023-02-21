@@ -19,8 +19,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.5'
-__release__ = 20230209
+__version__ = '0.1.6'
+__release__ = 20230221
 
 
 class DLISIOError(Exception):
@@ -90,12 +90,28 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=T
             frames[(l_count, frame.name)] = (curves_df, meta, pd.Series(frame_units, name='frame_units'), well_name)
     physical_file.close()
 
-    frames = {name: Log(data=data[0] if not use_simpandas else spd.SimDataFrame(data=data[0], units=data[2], name=data[3], meta=data[1], source=path),
-                        header=data[1],
-                        units=data[2],
-                        source=path,
-                        well=data[3]) for name, data in frames.items()}
     if len(frames) == 1:
+        frames = {name: Log(
+            data=data[0] if not use_simpandas else spd.SimDataFrame(data=data[0], units=data[2], name=data[3],
+                                                                    meta=data[1],
+                                                                    source='logical file ' + str(
+                                                                        name[0]) + ' in: ' + path),
+            header=data[1],
+            units=data[2],
+            source='logical file ' + str(name[0]) + ' in: ' + path,
+            well=data[3]) for name, data in frames.items()}
         return frames[list(frames.keys())[0]]
     else:
+        frames = {name: Log(
+            data=data[0] if not use_simpandas else spd.SimDataFrame(data=data[0], units=data[2], name=data[3],
+                                                                    meta=data[1],
+                                                                    source='logical file ' + str(name[0]) +
+                                                                           ', frame ' + str(name[1]) +
+                                                                           ' in: ' + path),
+            header=data[1],
+            units=data[2],
+            source='logical file ' + str(name[0]) +
+                   ', frame ' + str(name[1]) +
+                   ' in: ' + path,
+            well=data[3]) for name, data in frames.items()}
         return Pack(frames)
