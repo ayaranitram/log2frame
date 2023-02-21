@@ -14,8 +14,8 @@ import os.path
 import logging
 from .rft import *
 
-__version__ = '0.1.14'
-__release__ = 20230220
+__version__ = '0.1.15'
+__release__ = 20230221
 __all__ = ['read', 'concat']
 
 
@@ -32,7 +32,7 @@ class _Log2FrameParams(object):
 _params_ = _Log2FrameParams()
 
 
-def _read_one(path: str, raise_error=True, use_simpandas=None):
+def _read_one(path: str, raise_error=True, use_simpandas=None, correct_units=True):
     if use_simpandas is not None and use_simpandas is True and not _params_.simpandas_:
         raise ModuleNotFoundError("SimPandas is not installed, please install it or set parameter `use_simpandas` to False.")
     use_simpandas = _params_.simpandas_ if use_simpandas is None else bool(use_simpandas)
@@ -42,11 +42,11 @@ def _read_one(path: str, raise_error=True, use_simpandas=None):
         else:
             logging.warning("The provided path can't be found:\n" + str(path))
     if path.split('.')[-1].lower() == 'las':
-        return las2frame(path, use_simpandas=use_simpandas, raise_error=raise_error)
+        return las2frame(path, use_simpandas=use_simpandas, raise_error=raise_error, correct_units=correct_units)
     elif path.split('.')[-1].lower() == 'dlis':
-        return dlis2frame(path, use_simpandas=use_simpandas, raise_error=raise_error)
+        return dlis2frame(path, use_simpandas=use_simpandas, raise_error=raise_error, correct_units=correct_units)
     elif path.split('.')[-1].lower() in ['lis', 'lti']:
-        return lis2frame(path, use_simpandas=use_simpandas, raise_error=raise_error)
+        return lis2frame(path, use_simpandas=use_simpandas, raise_error=raise_error, correct_units=correct_units)
     elif not raise_error:
         # logging.warning("Not a valid log file: " + str(path))
         return None
@@ -54,20 +54,20 @@ def _read_one(path: str, raise_error=True, use_simpandas=None):
         raise ValueError("`path` should be a '.las' or '.dlis' file")
 
 
-def read(path: str, recursive=True, raise_error=False, squeeze=True, use_simpandas=None):
+def read(path: str, recursive=True, raise_error=False, squeeze=True, use_simpandas=None, correct_units=True):
     if use_simpandas is not None and use_simpandas is True and not _params_.simpandas_:
         raise ModuleNotFoundError("SimPandas is not installed, please install it or set parameter `use_simpandas` to False.")
     use_simpandas = _params_.simpandas_ if use_simpandas is None else bool(use_simpandas)
     raise_error = _params_.raise_error_ if raise_error is None else bool(raise_error)
     if os.path.isfile(path):
-        return _read_one(path, raise_error=raise_error, use_simpandas=use_simpandas)
+        return _read_one(path, raise_error=raise_error, use_simpandas=use_simpandas, correct_units=correct_units)
     if type(path) is str:
         path = [path]
     if type(path) is not str and hasattr(path, '__iter__'):
         result = Pack()
         for each in path:
             for file in glob.iglob(each, recursive=recursive):
-                result.append(_read_one(file, raise_error=raise_error, use_simpandas=use_simpandas))
+                result.append(_read_one(file, raise_error=raise_error, use_simpandas=use_simpandas, correct_units=correct_units))
         if squeeze:
             return result.squeeze()
         else:

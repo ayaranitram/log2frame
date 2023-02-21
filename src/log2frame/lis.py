@@ -11,14 +11,15 @@ import os.path
 import pandas as pd
 from .log import Log
 from .pack import Pack
+from .dictionaries.units import correct_units as correct_units_
 
 try:
     import simpandas as spd
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.5'
-__release__ = 20230205
+__version__ = '0.1.6'
+__release__ = 20230221
 
 
 class DLISIOError(Exception):
@@ -28,7 +29,7 @@ class DLISIOError(Exception):
     def __init__(self, message='raised by dlisio.'):
         self.message = 'ERROR: reading LIS file ' + message
 
-def lis2frame(path: str, use_simpandas=False, raise_error=True):
+def lis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
     if type(path) is str:
@@ -107,7 +108,7 @@ def lis2frame(path: str, use_simpandas=False, raise_error=True):
                                       'reel_date': reel_header.date if hasattr(reel_header, 'reel_date') else ''}}
         for i in range(len(formatspecs)):
             frames[l_count][i] = {'index_name': formatspecs[i].index_mnem,
-                                  'index_units': formatspecs[i].index_units,
+                                  'index_units': correct_units_(formatspecs[i].index_units),
                                   'spacing': formatspecs[i].spacing,
                                   'spacing_units': formatspecs[i].spacing_units,
                                   'direction': formatspecs[i].direction,
@@ -119,6 +120,8 @@ def lis2frame(path: str, use_simpandas=False, raise_error=True):
                 meta = lis.curves_metadata(formatspecs[i], sample_rate=sample_rate, strict=False)
                 frames[l_count][i]['curves_units'][sample_rate] = {meta[key].mnemonic: meta[key].units for key in meta
                                                                    if meta[key] is not None}
+                if correct_units:
+                    frames[l_count][i]['curves_units'][sample_rate] = correct_units_(frames[l_count][i]['curves_units'][sample_rate])
 
         wellsite_data = logical_file.wellsite_data()
         for i in range(len(wellsite_data)):

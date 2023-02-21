@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from .log import Log
 from .pack import Pack
+from .dictionaries.units import correct_units as correct_units_
 
 try:
     import simpandas as spd
@@ -30,7 +31,7 @@ class DLISIOError(Exception):
         self.message = 'ERROR: reading DLIS file ' + message
 
 
-def dlis2frame(path: str, use_simpandas=False, raise_error=True):
+def dlis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
     if type(path) is str:
@@ -74,6 +75,8 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=True):
         meta.set_index('name', inplace=True)
         for frame in logical_file.frames:
             frame_units = {channel.name: channel.units for channel in frame.channels}
+            if correct_units:
+                frame_units = correct_units_(frame_units)
             try:
                 curves_df = pd.DataFrame(frame.curves()).set_index(frame.index)
             except ValueError:

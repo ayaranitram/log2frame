@@ -11,14 +11,15 @@ import os.path
 import pandas as pd
 import ntpath
 from .log import Log
+from .dictionaries.units import correct_units as correct_units_
 
 try:
     import simpandas as spd
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.4'
-__release__ = 20230219
+__version__ = '0.1.6'
+__release__ = 20230221
 
 
 class LASIOError(Exception):
@@ -29,7 +30,7 @@ class LASIOError(Exception):
         self.message = 'ERROR: reading LAS file ' + message
 
 
-def las2frame(path: str, use_simpandas=False, raise_error=True):
+def las2frame(path: str, use_simpandas=False, raise_error=True, correct_units=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
     if type(path) is str:
@@ -64,6 +65,9 @@ def las2frame(path: str, use_simpandas=False, raise_error=True):
             break
     if well_name is None:
         well_name = ntpath.basename(path).split('.')[0]
+
+    if correct_units:
+        las_units = correct_units_(las_units)
 
     return Log(data=las.df() if not use_simpandas else spd.SimDataFrame(data=las.df(),
                                                                         index_units=las.index_unit,
