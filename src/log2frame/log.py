@@ -5,7 +5,6 @@ Created on Tue Jan 24 21:53:17 2023
 @author: Martín Carlos Araya <martinaraya@gmail.com>
 """
 import logging
-
 import pandas as pd
 import unyts
 
@@ -13,6 +12,8 @@ import unyts
 __version__ = '0.1.4'
 __release__ = 20230220
 __all__ = ['Log']
+
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 
 class Log2FrameType(type):
@@ -192,14 +193,14 @@ class Log(object, metaclass=Log2FrameType):
             if _params_.raise_error_:
                 raise ValueError(msg)
             else:
-                logging.warning(msg)
+                logging.error(msg)
         else:
             from .__init__ import _params_
             msg = "index_to not implemented without SimPandas or Unyts."
             if _params_.raise_error_:
                 raise NotImplementedError(msg)
             else:
-                logging.warning(msg)
+                logging.error(msg)
             return self
 
     @property
@@ -246,7 +247,7 @@ class Log(object, metaclass=Log2FrameType):
             if _params_.raise_error_:
                 raise ValueError(msg)
             else:
-                logging.warning(msg)
+                logging.error(msg)
 
     def sort(self, inplace=False):
         if inplace:

@@ -12,6 +12,8 @@ __version__ = '0.1.3'
 __release__ = 20230221
 __all__ = ['Pack', 'concat']
 
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+
 
 def concat(logs, use_simpandas=None):
     if use_simpandas is None:

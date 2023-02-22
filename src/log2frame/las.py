@@ -21,6 +21,8 @@ except ModuleNotFoundError:
 __version__ = '0.1.6'
 __release__ = 20230221
 
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+
 
 class LASIOError(Exception):
     """
@@ -42,7 +44,7 @@ def las2frame(path: str, use_simpandas=False, raise_error=True, correct_units=Tr
         if raise_error:
             raise LASIOError("Error raised by lasio while reading: " + str(path))
         else:
-            logging.warning("Error raised by lasio while reading: " + str(path))
+            logging.error("Error raised by lasio while reading: " + str(path))
             return None
 
     las_units = {}

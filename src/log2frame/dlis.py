@@ -19,8 +19,10 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.7'
+__version__ = '0.1.8'
 __release__ = 20230221
+
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 
 class DLISIOError(Exception):
@@ -43,7 +45,7 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=T
         if raise_error:
             raise DLISIOError("Error raised by dlisio while reading: " + str(path))
         else:
-            logging.warning("Error raised by dlisio while reading: " + str(path))
+            logging.error("Error raised by dlisio while reading: " + str(path))
             return None
 
     frames = {}
