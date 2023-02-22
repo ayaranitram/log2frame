@@ -50,29 +50,42 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=T
     l_count = -1
     for logical_file in physical_file:
         l_count += 1
-        meta = pd.DataFrame(index=range(len(logical_file.parameters)))
-        well_name = None
-        for p in range(len(logical_file.parameters)):
-            meta.loc[p, 'name'] = logical_file.parameters[p].name
-            meta.loc[p, 'long_name'] = logical_file.parameters[p].long_name
-            try:
-                _len_values = len(logical_file.parameters[p].values)
-            except:
-                if raise_error:
-                    raise DLISIOError("Error raised by dlisio while reading: " + str(path))
-                else:
-                    logging.warning("Error raised by dlisio while reading: " + str(path))
-                    _len_values = 0
-            if _len_values > 0:
-                if isinstance(logical_file.parameters[p].values[0], np.ndarray):
-                    meta.loc[p, 'values'] = 'numpy.ndarray not loaded.'
-                else:
-                    meta.loc[p, 'values'] = logical_file.parameters[p].values[0]
+        try:  # to skip RuntimeError raised by dlisio
+            log_file_params = logical_file.parameters
+        except:
+            if raise_error:
+                raise DLISIOError("Error raised by dlisio while reading: " + str(path))
             else:
-                meta.loc[p, 'values'] = ''
-            if logical_file.parameters[p].name == 'WN':
-                well_name = logical_file.parameters[p].values[0] if len(logical_file.parameters[p].values) else ''
-        meta.set_index('name', inplace=True)
+                logging.error("Error raised by dlisio while reading: " + str(path))
+                log_file_params = None
+        if log_file_params is not None:
+            meta = pd.DataFrame(index=range(len(log_file_params)))
+            well_name = None
+            for p in range(len(log_file_params)):
+                meta.loc[p, 'name'] = logical_file.parameters[p].name
+                meta.loc[p, 'long_name'] = logical_file.parameters[p].long_name
+                try:
+                    _len_values = len(logical_file.parameters[p].values)
+                except:
+                    if raise_error:
+                        raise DLISIOError("Error raised by dlisio while reading: " + str(path))
+                    else:
+                        logging.error("Error raised by dlisio while reading: " + str(path))
+                        _len_values = 0
+                if _len_values > 0:
+                    if isinstance(logical_file.parameters[p].values[0], np.ndarray):
+                        meta.loc[p, 'values'] = 'numpy.ndarray not loaded.'
+                    else:
+                        meta.loc[p, 'values'] = logical_file.parameters[p].values[0]
+                else:
+                    meta.loc[p, 'values'] = ''
+                if p in logical_file.parameters and hasattr(logical_file.parameters, 'name') and logical_file.parameters[p].name == 'WN':
+                    well_name = logical_file.parameters[p].values[0] if len(logical_file.parameters[p].values) else ''
+            if 'name' in meta:
+                meta.set_index('name', inplace=True)
+        else:
+            well_name = None
+            meta = pd.DataFrame()
         for frame in logical_file.frames:
             frame_units = {channel.name: channel.units for channel in frame.channels}
             if correct_units:
@@ -83,7 +96,6 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=T
                 if raise_error:
                     raise ValueError("The file " + str(path) + " contains data that is not 1-dimensional.")
                 else:
-                    # curves_df = frame.curves()
                     logging.warning("The file " + str(path) + " contains data that is not 1-dimensional.")
                     continue
 
