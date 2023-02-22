@@ -235,8 +235,15 @@ class Pack(object, metaclass=Log2FrameType):
             rows = [len(self.data[w][f]) for w in self.data for f in self.data[w]]
             index_names = [self.data[w][f].index_name for w in self.data for f in self.data[w]]
             index_units = [self.data[w][f].index_units for w in self.data for f in self.data[w]]
-            min_index = [min(self.data[w][f].index) for w in self.data for f in self.data[w]]
-            max_index = [max(self.data[w][f].index) for w in self.data for f in self.data[w]]
+            min_index = [min(self.data[w][f].index)
+                         if len(self.data[w][f].index) > 0
+                         else None
+                         for w in self.data for f in self.data[w]]
+            max_index = [max(self.data[w][f].index)
+                         if len(self.data[w][f].index) > 0
+                         else None
+                         for w in self.data for f in self.data[w]]
+
             self.summary_ = pd.DataFrame(data={'well': wells,
                                                'curves': curves,
                                                'steps': rows,
