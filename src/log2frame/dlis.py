@@ -19,7 +19,7 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
 __release__ = 20230221
 
 
@@ -94,11 +94,10 @@ def dlis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=T
         frames = {name: Log(
             data=data[0] if not use_simpandas else spd.SimDataFrame(data=data[0], units=data[2], name=data[3],
                                                                     meta=data[1],
-                                                                    source='logical file ' + str(
-                                                                        name[0]) + ' in: ' + path),
+                                                                    source=str(path)),
             header=data[1],
             units=data[2],
-            source='logical file ' + str(name[0]) + ' in: ' + path,
+            source=str(path),
             well=data[3]) for name, data in frames.items()}
         return frames[list(frames.keys())[0]]
     else:
