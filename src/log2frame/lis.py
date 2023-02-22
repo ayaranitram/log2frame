@@ -18,7 +18,7 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
 __release__ = 20230221
 
 
@@ -57,7 +57,7 @@ def lis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=Tr
                                           if frames[l_count]['header']['name'] is not None
                                              and len(frames[l_count]['header']['name']) > 0 else None),
                                     meta=_make_header(l_count=l_count, i=i, sr=sr),
-                                    source=path)
+                                    source='logical file ' + str(l_count) + ', frame ' + str(i) + ', sample rate ' + str(sr) + ' in: ' + str(path))
         else:
             return data.set_index(index_name)
 
@@ -139,7 +139,10 @@ def lis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=Tr
                         l_count=l_count, i=i, sr=sr),
         header=_make_header(l_count=l_count, i=i, sr=sr),
         units=pd.Series(frames[l_count][i]['curves_units'][sr]),
-        source=path,
+        source='logical file ' + str(l_count) +
+               ', frame ' + str(i) +
+               ', sample rate ' + str(sr) +
+               ' in: ' + str(path),
         well=(
             frames[l_count]['header']['service_name'] if frames[l_count]['header']['service_name'] is not None and len(
                 frames[l_count]['header']['service_name']) > 0 else
