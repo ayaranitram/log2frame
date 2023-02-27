@@ -8,11 +8,11 @@ import logging
 import pandas as pd
 from .log import Log, Log2FrameType
 
-__version__ = '0.1.3'
-__release__ = 20230221
+__version__ = '0.1.4'
+__release__ = 20230223
 __all__ = ['Pack', 'concat']
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 
 def concat(logs, use_simpandas=None):

@@ -14,8 +14,8 @@ import os.path
 import logging
 from .rft import *
 
-__version__ = '0.1.18'
-__release__ = 20230221
+__version__ = '0.1.19'
+__release__ = 20230223
 __all__ = ['read', 'concat']
 
 

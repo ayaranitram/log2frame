@@ -9,11 +9,11 @@ import pandas as pd
 import unyts
 
 
-__version__ = '0.1.4'
-__release__ = 20230220
+__version__ = '0.1.6'
+__release__ = 20230223
 __all__ = ['Log']
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 
 class Log2FrameType(type):
