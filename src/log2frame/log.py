@@ -151,11 +151,11 @@ class Log(object, metaclass=Log2FrameType):
         if isinstance(index_units, Log):
             index_units = index_units.index_units
         if hasattr(self.data, 'index_to'):
-            data = self.data.index_to(index_units)
-            if data.index.units == index_units:
+            if hasattr(self.data.index, 'units') and self.data.index.units == index_units:
                 logging.info("index units are already '" + str(index_units) + "'.")
                 return self
-            elif data.index.units == self.data.index.units:
+            data = self.data.index_to(index_units)
+            if data.index.units == self.data.index.units:
                 logging.warning("index units not converted!")
                 units = self.units
             else:
