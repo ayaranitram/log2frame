@@ -266,4 +266,4 @@ class Pack(object, metaclass=Log2FrameType):
 
     @property
     def wells(self):
-        return self.summary()['well'].unique()
+        return list(self.summary()['well'].unique())
