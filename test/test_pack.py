@@ -80,6 +80,21 @@ class TestPack(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ = pack[('missing', 'path')]
 
+    def test_concat_with_simpandas(self):
+        simpandas_mod = types.ModuleType('simpandas')
+        class SimDataFrame(pd.DataFrame):
+            pass
+        simpandas_mod.SimDataFrame = SimDataFrame
+        simpandas_mod.concat = lambda frames, axis=0: SimDataFrame(pd.concat(frames, axis=axis))
+        sys.modules['simpandas'] = simpandas_mod
+        try:
+            result = concat([self.log1, self.log2], use_simpandas=True)
+            self.assertEqual(type(result).__name__, 'SimDataFrame')
+            self.assertEqual(list(result['well']), ['w1', 'w1', 'w2', 'w2'])
+            self.assertEqual(list(result['source']), ['one', 'one', 'two', 'two'])
+        finally:
+            del sys.modules['simpandas']
+
 
 if __name__ == '__main__':
     unittest.main()

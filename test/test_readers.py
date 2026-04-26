@@ -1,3 +1,5 @@
+import importlib.util
+import importlib.util
 import os
 import sys
 import tempfile
@@ -6,8 +8,23 @@ import unittest
 
 import pandas as pd
 
+
+def module_available(name):
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError):
+        return False
+
+HAS_LASIO = module_available('lasio')
+HAS_DLISIO = module_available('dlisio')
+
 # Ensure the package root is importable.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
+# Remove stale alternate package names created by other test modules.
+for mod in list(sys.modules):
+    if mod == 'src.log2frame' or mod.startswith('src.log2frame.'):
+        del sys.modules[mod]
 
 # Stub external dependencies that are not installed in this environment.
 if 'unyts' not in sys.modules:
@@ -35,8 +52,20 @@ if 'dlisio.dlis' not in sys.modules:
     sys.modules['dlisio.dlis'] = dlisio_dlis
 if 'simpandas' not in sys.modules:
     simpandas_mod = types.ModuleType('simpandas')
-    simpandas_mod.SimDataFrame = type('SimDataFrame', (pd.DataFrame,), {})
-    simpandas_mod.concat = lambda frames, axis=0: pd.concat(frames, axis=axis)
+    class SimDataFrame(pd.DataFrame):
+        def __init__(self, data=None, index_units=None, units=None, name=None, meta=None, source=None, **kwargs):
+            super().__init__(data)
+            self.index_units = index_units
+            self._units = units
+            self.name = name
+            self.meta = meta
+            self.source = source
+        def get_units(self):
+            return self._units
+        def to(self, units):
+            return SimDataFrame(self.copy(), index_units=self.index_units, units=self._units, name=self.name, meta=self.meta, source=self.source)
+    simpandas_mod.SimDataFrame = SimDataFrame
+    simpandas_mod.concat = lambda frames, axis=0: SimDataFrame(pd.concat(frames, axis=axis))
     sys.modules['simpandas'] = simpandas_mod
 
 # Dummy LAS backend.
@@ -145,7 +174,40 @@ sys.modules['dlisio.dlis'].load = lambda path: DummyFileWrapper([DummyDlisLogica
 import log2frame
 
 
+def sampledata_file(name):
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'sampledata', name))
+
+
 class TestReaders(unittest.TestCase):
+    @unittest.skipUnless(HAS_LASIO, 'lasio is required for real sampledata tests')
+    def test_las2frame_real_sampledata(self):
+        path = sampledata_file('A12a_CPP_A7_1225in_RM_397-1186mMD.LAS')
+        self.assertTrue(os.path.isfile(path))
+        log = log2frame.read(path, use_simpandas=False)
+        self.assertIsNotNone(log)
+        self.assertEqual(log.source, path)
+        self.assertIn('GR', log.data.columns)
+
+    @unittest.skipUnless(HAS_DLISIO, 'dlisio is required for real sampledata tests')
+    def test_dlis2frame_real_sampledata(self):
+        path = sampledata_file('G030088973__A-5-1__REFS12348052.dlis')
+        self.assertTrue(os.path.isfile(path))
+        log = log2frame.read(path, use_simpandas=False)
+        self.assertIsNotNone(log)
+        self.assertEqual(log.source, path)
+        self.assertIn('GR', log.data.columns)
+
+    @unittest.skipUnless(HAS_DLISIO, 'dlisio is required for real sampledata tests')
+    def test_lis2frame_real_sampledata(self):
+        path = sampledata_file('a0501t01.lis')
+        self.assertTrue(os.path.isfile(path))
+        result = log2frame.read(path, use_simpandas=False)
+        self.assertIsNotNone(result)
+        if isinstance(result, log2frame.Pack):
+            self.assertGreaterEqual(len(result), 1)
+        else:
+            self.assertIn('GR', result.data.columns)
+
     def test_las2frame_plain_pandas_units_preserved(self):
         with tempfile.NamedTemporaryFile(suffix='.las', delete=False) as tmp:
             tmp_path = tmp.name
@@ -178,6 +240,20 @@ class TestReaders(unittest.TestCase):
             self.assertEqual(log.units['GR'], 'gAPI')
         finally:
             os.remove(tmp_path)
+
+    def test_lis2frame_does_not_include_extra_columns(self):
+        with tempfile.NamedTemporaryFile(suffix='.lis', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            log = log2frame.lis2frame(tmp_path, use_simpandas=False)
+            self.assertNotIn('physical_file', log.data.columns)
+            self.assertNotIn('logical_file', log.data.columns)
+            self.assertNotIn('sample_rate', log.data.columns)
+        finally:
+            os.remove(tmp_path)
+
+    def test_default_simpandas_flag_is_boolean(self):
+        self.assertIsInstance(log2frame._params_.simpandas_, bool)
 
 
 if __name__ == '__main__':
