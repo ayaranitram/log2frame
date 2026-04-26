@@ -14,8 +14,8 @@ import os.path
 import logging
 from .rft import *
 
-__version__ = '0.1.19'
-__release__ = 20230223
+__version__ = '0.2.0'
+__release__ = 20260426
 __all__ = ['read', 'concat']
 
 
@@ -25,7 +25,7 @@ class _Log2FrameParams(object):
             import simpandas as spd
             self.simpandas_ = True
         except ModuleNotFoundError:
-            self.simpandas_ = None
+            self.simpandas_ = False
         self.raise_error_ = True
 
 

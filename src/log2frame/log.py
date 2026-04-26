@@ -9,8 +9,8 @@ import pandas as pd
 import unyts
 
 
-__version__ = '0.1.6'
-__release__ = 20230223
+__version__ = '0.2.0'
+__release__ = 20260426
 __all__ = ['Log']
 
 logging.basicConfig(level=logging.INFO)
@@ -65,14 +65,20 @@ class Log(object, metaclass=Log2FrameType):
                     raise KeyError("'" + str(mnemonics) + "' is not a curve name and is not a value in the index.")
 
     def __iter__(self):
+        self._iter_index = 0
         return self
 
     def __len__(self):
         return len(self.data)
 
     def __next__(self):
-        for curve in self.data.columns:
-            yield curve
+        if self.data is None or not hasattr(self.data, 'columns'):
+            raise StopIteration
+        if self._iter_index >= len(self.data.columns):
+            raise StopIteration
+        curve = self.data.columns[self._iter_index]
+        self._iter_index += 1
+        return curve
 
     def __repr__(self):
         return self.data.__repr__()
@@ -88,9 +94,9 @@ class Log(object, metaclass=Log2FrameType):
         return self.keys()
 
     def copy(self):
-        return Log(data=self.data.copy(),
-                   header=self.header.copy(),
-                   units=self.units.copy(),
+        return Log(data=self.data.copy() if hasattr(self.data, 'copy') else self.data,
+                   header=self.header.copy() if self.header is not None and hasattr(self.header, 'copy') else self.header,
+                   units=self.units.copy() if self.units is not None and hasattr(self.units, 'copy') else self.units,
                    source=self.source,
                    well=self.well)
 
@@ -142,24 +148,32 @@ class Log(object, metaclass=Log2FrameType):
         self.data.index.name = name
 
     def set_index_units(self, units: str):
+        if units is None:
+            return
+        units = str(units)
         if hasattr(self.data, 'set_index_units'):
-            self.data.set_index_units(units)
-        if self.data.index.name in self.units:
-            self.units[self.data.index.name] = units.split()
+            try:
+                self.data.set_index_units(units)
+            except Exception:
+                pass
+        if self.units is not None and self.data.index.name in self.units:
+            self.units[self.data.index.name] = units
 
     def index_to(self, index_units: str):
         if isinstance(index_units, Log):
             index_units = index_units.index_units
-        if hasattr(self.data, 'index_to'):
-            if hasattr(self.data.index, 'units') and self.data.index.units == index_units:
+        if hasattr(self.data, 'index_to') and callable(self.data.index_to):
+            current_units = getattr(self.data.index, 'units', None)
+            if current_units == index_units:
                 logging.info("index units are already '" + str(index_units) + "'.")
                 return self
             data = self.data.index_to(index_units)
-            if data.index.units == self.data.index.units:
+            new_units = getattr(data.index, 'units', None)
+            if new_units == current_units:
                 logging.warning("index units not converted!")
                 units = self.units
             else:
-                units = pd.Series(data.get_units())
+                units = pd.Series(data.get_units()) if hasattr(data, 'get_units') else self.units
             return Log(data=data,
                        header=self.header,
                        units=units,
@@ -277,9 +291,9 @@ class Log(object, metaclass=Log2FrameType):
                 units = dict(zip(curve, units))
             else:
                 logging.warning("`curve` must be str or iterable. If `units` is iterable, curves and units must have the same length.")
-        if hasattr(self.data, 'index_to'):
+        if hasattr(self.data, 'to'):
             data = self.data.to(units)
-            units = pd.Series(data.get_units())
+            units = pd.Series(data.get_units()) if hasattr(data, 'get_units') else self.units
             return Log(data=data,
                        header=self.header,
                        units=units,

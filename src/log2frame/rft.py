@@ -7,10 +7,9 @@ Created on Sun Feb  5 19:54:23 2023
 import pandas as pd
 import glob
 import os
-from .__init__ import read as read_log_
 
-__version__ = '0.1.2'
-__release__ = 20230221
+__version__ = '0.2.0'
+__release__ = 20260426
 __all__ = ['rft_summaries_from_folders', 'rft_summary']
 
 
@@ -154,6 +153,7 @@ def extract_info(info_df: pd.DataFrame) -> None:
 
 
 def read_mdt_log(path: str) -> pd.DataFrame:
+    from .__init__ import read as read_log_
     return read_log_(path).data
 
 

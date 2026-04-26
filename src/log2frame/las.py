@@ -18,8 +18,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.6'
-__release__ = 20230221
+__version__ = '0.2.0'
+__release__ = 20260426
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
@@ -32,11 +32,17 @@ class LASIOError(Exception):
         self.message = 'ERROR: reading LAS file ' + message
 
 
-def las2frame(path: str, use_simpandas=False, raise_error=True, correct_units=True):
+def las2frame(path: str, use_simpandas=None, raise_error=True, correct_units=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
     if type(path) is str:
         path = path.replace('\\', '/')
+
+    from .__init__ import _params_
+    if use_simpandas is None:
+        use_simpandas = _params_.simpandas_
+    if use_simpandas is True and not _params_.simpandas_:
+        raise ModuleNotFoundError("SimPandas is not installed, please install it or set parameter `use_simpandas` to False.")
 
     try:
         las = lasio.read(path)
@@ -54,10 +60,11 @@ def las2frame(path: str, use_simpandas=False, raise_error=True, correct_units=Tr
     if 'Curves' in las.header:
         las_units.update({las.header['Curves'][i]['mnemonic']: las.header['Curves'][i]['unit'] for i in
                           range(len(las.header['Curves']))})
-    las_header = pd.DataFrame({las.header[key][i]['mnemonic']: [las.header[key][i]['unit'], las.header[key][i]['value'],
-                                                                las.header[key][i]['descr']]
+    las_header = pd.DataFrame({las.header[key][i].mnemonic: [las.header[key][i].unit, las.header[key][i].value,
+                                                             las.header[key][i].descr]
                                for key in las.header.keys()
-                               for i in range(len(las.header[key])) if hasattr(las.header[key], 'keys')},
+                               for i in range(len(las.header[key]))
+                               if hasattr(las.header[key][i], 'mnemonic')},
                               index=['unit', 'value', 'descr']).transpose()
     well_name = None
     for well_name_ in ['UWI', 'WELLBORE', 'WELL', 'WELL:1', 'WELL:2', 'WN', 'NAME', 'WNAME']:
@@ -68,15 +75,26 @@ def las2frame(path: str, use_simpandas=False, raise_error=True, correct_units=Tr
     if well_name is None:
         well_name = ntpath.basename(path).split('.')[0]
 
+    data = las.df()
+    index_name = data.index.name or getattr(las, 'index_mnem', None)
+    if index_name is None:
+        index_name = 'INDEX'
+    data.index.name = index_name
+    if las.index_unit is not None:
+        las_units[index_name] = las.index_unit
+
     if correct_units:
         las_units = correct_units_(las_units)
 
-    return Log(data=las.df() if not use_simpandas else spd.SimDataFrame(data=las.df(),
-                                                                        index_units=las.index_unit,
-                                                                        units=las_units,
-                                                                        name=well_name,
-                                                                        meta=las_header,
-                                                                        source=path),
+    if use_simpandas:
+        data = spd.SimDataFrame(data=data,
+                                index_units=las.index_unit,
+                                units=las_units,
+                                name=well_name,
+                                meta=las_header,
+                                source=path)
+
+    return Log(data=data,
                header=las_header,
                units=pd.Series(las_units, name='curves_units'),
                source=path,

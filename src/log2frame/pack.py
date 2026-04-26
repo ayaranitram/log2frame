@@ -5,11 +5,12 @@ Created on Tue Jan 24 21:21:21 2023
 @author: Martín Carlos Araya <martinaraya@gmail.com>
 """
 import logging
+import numpy as np
 import pandas as pd
 from .log import Log, Log2FrameType
 
-__version__ = '0.1.4'
-__release__ = 20230223
+__version__ = '0.2.0'
+__release__ = 20260426
 __all__ = ['Pack', 'concat']
 
 logging.basicConfig(level=logging.INFO)
@@ -20,22 +21,23 @@ def concat(logs, use_simpandas=None):
         from .__init__ import _params_
         use_simpandas = _params_.simpandas_
     if use_simpandas:
-        from simpandas import concat as _concat, SimDataFrame as _Frame
+        from simpandas import concat as _concat
     else:
-        from pandas import concat as _concat, DataFrame as _Frame
+        from pandas import concat as _concat
         logging.warning("Not able to guarantee units conversion, because not using SimDataFrame.")
 
     if type(logs) in (list, tuple):
         for each in logs:
             if not isinstance(each, Log):
                 raise TypeError("Can only concatenate objects of type Log, not of type '" + str(type(each)) + "'.")
-        return _concat([_concat([each.data, _Frame({'well': [each.name] * len(each.data),
-                                                    'source': [each.source] * len(each.data)},
-                                                   index=each.index,
-                                                   dtype='category')], axis=1)
-                        for each in logs], axis=0)
+        frames = [each.data for each in logs]
+        lengths = [len(df) for df in frames]
+        result = _concat(frames, axis=0)
+        result['well'] = pd.Categorical(np.repeat([each.name for each in logs], lengths))
+        result['source'] = pd.Categorical(np.repeat([each.source for each in logs], lengths))
+        return result
     elif isinstance(logs, Pack):
-        return concat([logs.data[w][f] for w in logs.data.keys() for f in logs.data[w]])
+        return concat([logs.data[w][f] for w in logs.data.keys() for f in logs.data[w]], use_simpandas=use_simpandas)
 
 
 class Pack(object, metaclass=Log2FrameType):
@@ -50,6 +52,8 @@ class Pack(object, metaclass=Log2FrameType):
         if self.simpandas_:
             from simpandas import SimDataFrame
             Pack.valid_instances_ = (SimDataFrame, Log)
+        else:
+            Pack.valid_instances_ = (Log,)
         self.data = {}
         if 'data_from_dict' in kwargs:
             self.data = kwargs['data_from_dict']
@@ -94,7 +98,7 @@ class Pack(object, metaclass=Log2FrameType):
             if well in self.data and source in self.data[well]:
                 return self.data[well][source]
             else:
-                ValueError(str(well) + " is not an index in this Pack.")
+                raise ValueError(str(well) + " is not an index in this Pack.")
         else:
             raise ValueError(str(well) + " is not an index in this Pack.")
         return Pack(result)

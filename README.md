@@ -7,6 +7,12 @@ A function to read well log data in LAS, LIS and DLIS formats and extract curves
 The curves and header data are stored in an instance of `Log` class, designed to hold this data and operate with it.
 If multiple log files are read together, the __Log__ instances are packed in a `Pack` instance, designed to hold `Log` instances and operate with them.
 
+# unit-aware mode
+When `simpandas` is installed, `log2frame` can preserve curve units and index units through the `use_simpandas` option.
+- `log2frame.read(path, use_simpandas=False)` returns plain pandas-backed `Log` instances.
+- `log2frame.read(path, use_simpandas=True)` uses `simpandas.SimDataFrame` when available.
+- If `use_simpandas` is omitted, the package defaults to the installed `simpandas` setting.
+
 # to read log files
 Simply call the function `read()` with the path or path pattern as argument:
 

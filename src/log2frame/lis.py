@@ -18,8 +18,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.1.7'
-__release__ = 20230221
+__version__ = '0.2.0'
+__release__ = 20260426
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
@@ -31,11 +31,17 @@ class DLISIOError(Exception):
     def __init__(self, message='raised by dlisio.'):
         self.message = 'ERROR: reading LIS file ' + message
 
-def lis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=True):
+def lis2frame(path: str, use_simpandas=None, raise_error=True, correct_units=True):
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
     if type(path) is str:
         path = path.replace('\\', '/')
+
+    from .__init__ import _params_
+    if use_simpandas is None:
+        use_simpandas = _params_.simpandas_
+    if use_simpandas is True and not _params_.simpandas_:
+        raise ModuleNotFoundError("SimPandas is not installed, please install it or set parameter `use_simpandas` to False.")
 
     def _get_frame(data, l_count, i, sr):
         if frames[l_count][i]['index_name'] in data:
@@ -133,32 +139,39 @@ def lis2frame(path: str, use_simpandas=False, raise_error=True, correct_units=Tr
                 frames[l_count][i]['wellsite_data'] = wellsite_data[i].table(simple=True)
     physical_file.close()
 
-    frames = {(l_count, i, sr): Log(
-        data=_get_frame(pd.concat([pd.DataFrame({'physical_file': [l_count] * len(frames[l_count][i]['curves'][sr]),
-                                                 'logical_file': [i] * len(frames[l_count][i]['curves'][sr]),
-                                                 'sample_rate': [sr] * len(frames[l_count][i]['curves'][sr])}),
-                                   _try_frame(frames[l_count][i]['curves'][sr])], axis=1),
-                        l_count=l_count, i=i, sr=sr),
-        header=_make_header(l_count=l_count, i=i, sr=sr),
-        units=pd.Series(frames[l_count][i]['curves_units'][sr]),
-        source='logical file ' + str(l_count) +
-               ', frame ' + str(i) +
-               ', sample rate ' + str(sr) +
-               ' in: ' + str(path),
-        well=(
-            frames[l_count]['header']['service_name'] if frames[l_count]['header']['service_name'] is not None and len(
-                frames[l_count]['header']['service_name']) > 0 else
-            frames[l_count]['header']['file_name'] if frames[l_count]['header']['file_name'] is not None and len(
-                frames[l_count]['header']['file_name']) > 0 else
-            frames[l_count]['header']['name'] if frames[l_count]['header']['name'] is not None and len(
-                frames[l_count]['header']['name']) > 0 else None)
-    ) for l_count in frames
-        for i in frames[l_count]
-        if type(i) is int
-           and 'curves' in frames[l_count][i]
-        for sr in frames[l_count][i]['curves']
-        if len(frames[l_count][i]['curves'][sr]) > 0}
+    result_frames = {}
+    for l_count in frames:
+        for i in frames[l_count]:
+            if type(i) is not int or 'curves' not in frames[l_count][i]:
+                continue
+            for sr in frames[l_count][i]['curves']:
+                if len(frames[l_count][i]['curves'][sr]) == 0:
+                    continue
+                raw = _try_frame(frames[l_count][i]['curves'][sr])
+                if raw is None:
+                    continue
+                data = _get_frame(raw, l_count=l_count, i=i, sr=sr)
+                units = pd.Series(frames[l_count][i]['curves_units'][sr])
+                if data.index.name is not None and frames[l_count][i]['index_units'] is not None:
+                    units[data.index.name] = frames[l_count][i]['index_units']
+                result_frames[(l_count, i, sr)] = Log(
+                    data=data,
+                    header=_make_header(l_count=l_count, i=i, sr=sr),
+                    units=units,
+                    source='logical file ' + str(l_count) +
+                           ', frame ' + str(i) +
+                           ', sample rate ' + str(sr) +
+                           ' in: ' + str(path),
+                    well=(
+                        frames[l_count]['header']['service_name'] if frames[l_count]['header']['service_name'] is not None and len(
+                            frames[l_count]['header']['service_name']) > 0 else
+                        frames[l_count]['header']['file_name'] if frames[l_count]['header']['file_name'] is not None and len(
+                            frames[l_count]['header']['file_name']) > 0 else
+                        frames[l_count]['header']['name'] if frames[l_count]['header']['name'] is not None and len(
+                            frames[l_count]['header']['name']) > 0 else None)
+                )
 
+    frames = result_frames
     if len(frames) == 1:
         return frames[list(frames.keys())[0]]
     else:
