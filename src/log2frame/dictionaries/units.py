@@ -12,8 +12,17 @@ from pathlib import Path
 this_path_ = Path(__file__).with_name('units_dictionary.json').absolute()
 this_path_ = dirname(this_path_) + '/'
 
-with open(this_path_ + 'units_dictionary.json', 'r') as f:
-    units_correction_dict_ = json.load(f)
+try:
+    with open(this_path_ + 'units_dictionary.json', 'r') as f:
+        units_correction_dict_ = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError) as e:
+    import warnings
+    warnings.warn(
+        f"log2frame: units-correction dictionary not found "
+        f"({type(e).__name__}: {e}); proceeding with unit-correction disabled.",
+        UserWarning,
+    )
+    units_correction_dict_ = {}
 
 
 def correct_units(units):

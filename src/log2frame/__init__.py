@@ -14,8 +14,11 @@ import os.path
 import logging
 from .rft import *
 
-__version__ = '0.2.0'
-__release__ = 20260426
+for name in ("lasio", "lasio.reader", "lasio.las", "unyts"):
+    logging.getLogger(name).setLevel(logging.WARNING)
+
+__version__ = '0.2.2'
+__release__ = 20260427
 __all__ = ['read', 'concat']
 
 
@@ -55,6 +58,23 @@ def _read_one(path: str, raise_error=True, use_simpandas=None, correct_units=Tru
 
 
 def read(path: str, recursive=True, raise_error=False, squeeze=True, use_simpandas=None, correct_units=True):
+    """Read a well-log file (LAS, DLIS, LIS) into a units-aware :class:`Log` container.
+
+    Accepts individual file paths or a list of paths/globs. If multiple files are
+    read, they are returned grouped in a :class:`Pack` container.
+
+    Parameters
+    ----------
+    path : str | list[str]
+        Path to the ``.las``, ``.dlis``, or ``.lis`` file(s). Glob expressions and directory paths are supported.
+    recursive : bool, default True
+        If reading a path pattern with globs, controls whether directories are searched recursively.
+    squeeze : bool, default True
+        If True and only one log is inside a resulting pack, return that single Log object instead of the Pack.
+    use_simpandas : bool | None, default None
+    raise_error : bool, default False
+    correct_units : bool, default True
+    """
     if use_simpandas is not None and use_simpandas is True and not _params_.simpandas_:
         raise ModuleNotFoundError("SimPandas is not installed, please install it or set parameter `use_simpandas` to False.")
     use_simpandas = _params_.simpandas_ if use_simpandas is None else bool(use_simpandas)

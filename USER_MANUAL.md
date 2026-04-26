@@ -120,15 +120,30 @@ pack = log2frame.read('sampledata/**/*.*')
 |---|---|---|
 | `.data` | `DataFrame` or `SimDataFrame` | Curve values, indexed by depth (or time) |
 | `.header` | `DataFrame` | Parsed log header (mnemonic, unit, value, description) |
-| `.units` | `Series` | Curve and index units keyed by mnemonic |
+| `.units` | `Series` | Curve and index units keyed by mnemonic. **Note:** Multi-element Series; see [truthiness warning](#warning-pandas-truthiness). |
+| `.units_dict()` | `dict` | Returns the ``.units`` Series as a plain Python dictionary. |
 | `.source` | `str` | Path (or identifier) of the source file |
 | `.well` | `str` | Well name extracted from the header |
 | `.name` | `str` | UWI if present, otherwise `.well` |
 | `.uwi` | `str` or `None` | Unique Well Identifier from header |
 | `.index` | pandas `Index` | The depth / time index |
 | `.index_name` | `str` | Mnemonic of the index curve |
-| `.index_units` | `str` | Units of the index |
+| `.index_units` | `str` | Units of the index (normalised to lowercase canonical forms like `"m"` or `"ft"`) |
 | `.curves` / `.columns` | Index | Column mnemonics (does not include the index column) |
+
+#### <a name="warning-pandas-truthiness"></a> ⚠️ Warning: pandas truthiness
+
+`Log.units` is a multi-element pandas `Series`. Because of how pandas handles truthiness, common Python idioms like `dict(log.units or {})` will raise a `ValueError` or silently fail in some contexts.
+
+**Recommended usage:**
+```python
+# Safe way to get a dictionary of units
+units = log.units_dict()
+
+# If you need to check for empty units
+if not log.units.empty:
+    ...
+```
 
 ### Accessing curves
 
@@ -238,6 +253,15 @@ Change the well name stored inside the `Log`:
 
 ```python
 log.rename('NEW-WELL-NAME')
+```
+
+#### `.units_dict()`
+
+Returns the curve units mapping as a plain dictionary. This is safer than converting `.units` directly if you need to handle potential empty sets.
+
+```python
+units = log.units_dict()
+gr_unit = units.get('GR', 'unknown')
 ```
 
 #### `log[mnemonic] = values`

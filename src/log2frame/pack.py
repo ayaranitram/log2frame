@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 from .log import Log, Log2FrameType
 
-__version__ = '0.2.0'
-__release__ = 20260426
+__version__ = '0.2.2'
+__release__ = 20260427
 __all__ = ['Pack', 'concat']
 
 logging.basicConfig(level=logging.INFO)

@@ -8,8 +8,8 @@ import pandas as pd
 import glob
 import os
 
-__version__ = '0.2.0'
-__release__ = 20260426
+__version__ = '0.2.2'
+__release__ = 20260427
 __all__ = ['rft_summaries_from_folders', 'rft_summary']
 
 

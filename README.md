@@ -4,8 +4,8 @@
 
 A function to read well log data in LAS, LIS and DLIS formats and extract curves data as DataFrame.
 
-The curves and header data are stored in an instance of `Log` class, designed to hold this data and operate with it.
-If multiple log files are read together, the __Log__ instances are packed in a `Pack` instance, designed to hold `Log` instances and operate with them.
+The curves and header data are stored in an instance of ``Log`` class, designed to hold this data and operate with it. It provides convenient access to metadata like well name, UWI, and curve units (via ``.units`` or the safer ``.units_dict()``).
+If multiple log files are read together, the __Log__ instances are packed in a ``Pack`` instance, designed to hold ``Log`` instances and operate with them.
 
 # unit-aware mode
 When `simpandas` is installed, `log2frame` can preserve curve units and index units through the `use_simpandas` option.

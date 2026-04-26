@@ -18,8 +18,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-__version__ = '0.2.0'
-__release__ = 20260426
+__version__ = '0.2.2'
+__release__ = 20260427
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
@@ -33,6 +33,39 @@ class LASIOError(Exception):
 
 
 def las2frame(path: str, use_simpandas=None, raise_error=True, correct_units=True):
+    """Read a LAS file (1.2 / 2.0 / 3.0) into a :class:`Log` container.
+
+    Parameters
+    ----------
+    path : str
+        Path to the ``.las`` file.
+    use_simpandas : bool | None, default None
+        If True, the returned :class:`Log` wraps a
+        :class:`simpandas.SimDataFrame` and units propagate through
+        operations. If False, plain :class:`pandas.DataFrame` is used.
+        ``None`` falls back to True when SimPandas is installed.
+    raise_error : bool, default True
+        If False, parse errors are caught and ``None`` is returned
+        instead of raising.
+    correct_units : bool, default True
+        Apply the LAS-mnemonic-to-canonical-unit corrections (GR's
+        ``GAPI`` ↔ ``gAPI`` etc.) defined in
+        :data:`dictionaries.units_correction_dict_`.
+
+    Returns
+    -------
+    Log | None
+        The parsed log; ``None`` if parsing failed and
+        ``raise_error=False``.
+
+    Examples
+    --------
+    >>> log = log2frame.las2frame("well.las")
+    >>> log.curves
+    ['GR', 'NPHI', 'RHOB', 'DT']
+    >>> log.units_dict()['GR']
+    'gAPI'
+    """
     if not os.path.isfile(path):
         raise FileNotFoundError("The provided path can't be found:\n" + str(path))
     if type(path) is str:

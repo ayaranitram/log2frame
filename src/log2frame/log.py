@@ -9,8 +9,8 @@ import pandas as pd
 import unyts
 
 
-__version__ = '0.2.0'
-__release__ = 20260426
+__version__ = '0.2.2'
+__release__ = 20260427
 __all__ = ['Log']
 
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +22,43 @@ class Log2FrameType(type):
 
 
 class Log(object, metaclass=Log2FrameType):
+    """A single well-log file represented as a units-aware container.
+
+    Public attributes
+    -----------------
+    name : str
+        Well name (from the ``WELL`` mnemonic).
+    uwi : str | None
+        Unique Well Identifier (from ``UWI`` / ``API``); ``None`` if absent.
+    path : str
+        Path to the source file.
+    source : str
+        Format identifier — ``"LAS"`` / ``"DLIS"`` / ``"LIS"``.
+    data : SimDataFrame | DataFrame
+        Curves, indexed by depth.
+    columns : list[str]
+        Curve mnemonics.
+    index_units : str
+        Unit of the depth index (``"M"`` / ``"FT"`` / …).
+    units : pandas.Series
+        Per-mnemonic units. **Multi-element Series**; do not test for
+        truthiness directly — see :meth:`units_dict`.
+    well : object
+        WELL-section attribute access (``log.well.STRT`` etc.).
+    header, meta, curves : ...
+        Free-form access to the LAS / DLIS sections.
+
+    Methods
+    -------
+    index_to(unit) → Log
+        Return a copy with the depth index converted to *unit*.
+    to(unit) → Log
+        Convert *all* curves to *unit* where the conversion is defined.
+    set_index(curve), set_index_name(name), set_index_units(unit)
+        Mutators on the depth index.
+    rename, copy, sort, keys
+        DataFrame-style helpers.
+    """
 
     def __init__(self, data=None, header=None, units=None, source=None, well=None):
         self.data = data
@@ -122,16 +159,59 @@ class Log(object, metaclass=Log2FrameType):
 
     @property
     def index_units(self):
+        units_str = None
         if hasattr(self.data, 'index_units'):
-            return self.data.index_units
+            units_str = self.data.index_units
         elif self.data.index.name in self.units:
-            return self.units[self.data.index.name]
+            units_str = self.units[self.data.index.name]
         else:
             logging.warning("index units are not defined.")
+            
+        if isinstance(units_str, str):
+            _DEPTH_UNIT_CANONICAL = {
+                "m": "m", "metre": "m", "meter": "m", "meters": "m", "metres": "m",
+                "ft": "ft", "foot": "ft", "feet": "ft",
+            }
+            return _DEPTH_UNIT_CANONICAL.get(units_str.strip().lower(), units_str)
+        return units_str
 
     @index_units.setter
     def index_units(self, units: str):
         self.set_index_units(units)
+
+    @property
+    def units(self) -> pd.Series:
+        """Per-mnemonic units as a pandas ``Series`` (not a dict).
+
+        .. note::
+            ``Log.units`` is a multi-element ``Series``, **not** a dict.
+            The conventional ``dict(log.units or {})`` pattern silently
+            evaluates to ``{}`` because of pandas' truthiness behaviour.
+            Use :meth:`units_dict` or ``dict(log.units)`` explicitly.
+        """
+        return self._units
+
+    @units.setter
+    def units(self, value):
+        self._units = value
+
+    def units_dict(self) -> dict:
+        """Return the curve→unit mapping as a plain ``dict``.
+
+        Use this instead of ``dict(log.units)`` if you want to support both
+        the (unusual) zero-curve case and the normal multi-curve case in a
+        single line.
+
+        >>> units = log.units_dict()
+        >>> units.get('GR', 'unknown')
+        'gAPI'
+        """
+        if self._units is None:
+            return {}
+        s = self._units
+        if hasattr(s, "empty") and s.empty:
+            return {}
+        return dict(s)
 
     def keys(self):
         return self.data.columns
