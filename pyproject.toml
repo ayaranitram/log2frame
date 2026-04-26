@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "log2frame"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
   { name="Martin Carlos Araya", email="martinaraya@gmail.com" },
 ]
@@ -32,3 +32,9 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/ayaranitram/log2frame"
 "Bug Tracker" = "https://github.com/ayaranitram/log2frame/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"log2frame" = ["dictionaries/*.json"]
